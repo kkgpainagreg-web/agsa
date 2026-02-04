@@ -1,7 +1,4 @@
-// =====================================================
-// FIREBASE CONFIG - firebase-config.js
-// =====================================================
-
+// Firebase Config
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
@@ -15,7 +12,6 @@ const firebaseConfig = {
     appId: "1:544375918988:web:3375b3025b7d51ea2546a9",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
