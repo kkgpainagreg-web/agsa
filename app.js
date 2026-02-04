@@ -415,7 +415,6 @@ function renderProfilPage() {
     
     return `
         <div class="max-w-4xl mx-auto space-y-6">
-            <!-- Profile Form -->
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
                     <i class="fas fa-user-circle text-blue-600 mr-2"></i>
@@ -525,7 +524,6 @@ function renderProfilPage() {
                     
                     <hr class="my-6">
                     
-                    <!-- DATA KEPALA SEKOLAH -->
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-user-tie text-purple-600 mr-2"></i>
                         Data Kepala Sekolah
@@ -543,7 +541,7 @@ function renderProfilPage() {
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kepala Sekolah *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kepala Sekolah</label>
                             <input type="text" name="kepalaSekolahNama" value="${user.kepalaSekolahNama || ''}"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Nama lengkap kepala sekolah">
@@ -580,7 +578,6 @@ function renderProfilPage() {
                 </form>
             </div>
             
-            <!-- Preview Tanda Tangan -->
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-signature text-indigo-600 mr-2"></i>
@@ -615,7 +612,6 @@ function renderProfilPage() {
                 </div>
             </div>
             
-            <!-- Guru di Sekolah yang Sama -->
             <div id="sameSchoolTeachers" class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-users text-teal-600 mr-2"></i>
@@ -627,6 +623,107 @@ function renderProfilPage() {
             </div>
         </div>
     `;
+}
+
+function initProfilPage() {
+    const form = document.getElementById('profilForm');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const userData = Object.fromEntries(formData.entries());
+        userData.updatedAt = new Date().toISOString();
+        
+        try {
+            // Save to localStorage
+            localStorage.setItem('guruSmartUser', JSON.stringify(userData));
+            APP_STATE.currentUser = userData;
+            
+            // Save to Firestore
+            await setDoc(doc(db, COLLECTIONS.USERS, userData.npsn + '_' + userData.email.replace(/[^a-zA-Z0-9]/g, '_')), {
+                ...userData,
+                createdAt: serverTimestamp()
+            });
+            
+            // Initialize default subjects if first time
+            if (userData.jenjang && APP_STATE.subjects.length === 0) {
+                await initializeDefaultSubjects(userData.npsn, userData.jenjang);
+            }
+            
+            updateUserDisplay();
+            await loadAllData();
+            showToast('Profil berhasil disimpan!', 'success');
+            
+            // Load teachers from same school
+            await loadSameSchoolTeachers(userData.npsn);
+            
+        } catch (error) {
+            console.error('Error saving profile:', error);
+            showToast('Gagal menyimpan profil', 'error');
+        }
+    });
+    
+    // Load same school teachers if NPSN exists
+    if (APP_STATE.currentUser?.npsn) {
+        loadSameSchoolTeachers(APP_STATE.currentUser.npsn);
+    }
+}
+
+async function loadSameSchoolTeachers(npsn) {
+    try {
+        const teachersQuery = query(
+            collection(db, COLLECTIONS.USERS),
+            where('npsn', '==', npsn)
+        );
+        const snapshot = await getDocs(teachersQuery);
+        
+        const container = document.getElementById('teachersList');
+        if (snapshot.empty) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">Belum ada guru lain terdaftar di sekolah ini</p>';
+            return;
+        }
+        
+        const teachers = snapshot.docs.map(doc => doc.data());
+        container.innerHTML = teachers.map(t => `
+            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
+                    ${t.nama?.charAt(0) || 'G'}
+                </div>
+                <div>
+                    <p class="font-medium text-gray-800">${t.nama || 'Guru'}</p>
+                    <p class="text-sm text-gray-500">${t.email || '-'}</p>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading teachers:', error);
+    }
+}
+
+async function initializeDefaultSubjects(npsn, jenjang) {
+    const subjects = DEFAULT_SUBJECTS[jenjang] || [];
+    const batch = writeBatch(db);
+    
+    for (const subject of subjects) {
+        const docRef = doc(collection(db, COLLECTIONS.SUBJECTS));
+        batch.set(docRef, {
+            ...subject,
+            npsn,
+            createdAt: serverTimestamp()
+        });
+    }
+    
+    await batch.commit();
+}
+
+function updateUserDisplay() {
+    const user = APP_STATE.currentUser;
+    if (user) {
+        document.getElementById('userInitial').textContent = user.nama?.charAt(0) || 'G';
+        document.getElementById('userName').textContent = user.nama || 'Guru';
+        document.getElementById('userSchool').textContent = user.schoolName || 'Sekolah';
+    }
 }
 
 // =====================================================
@@ -663,8 +760,64 @@ window.refreshData = async function() {
 };
 
 // =====================================================
-// CONTINUE TO NEXT PART...
+// HELPER: GENERATE TANDA TANGAN DOKUMEN
 // =====================================================
+function generateTandaTangan(options = {}) {
+    const user = APP_STATE.currentUser || {};
+    const {
+        showDate = true,
+        guruLabel = 'Guru Mata Pelajaran',
+        kepalaLabel = 'Kepala Sekolah'
+    } = options;
+    
+    const lokasi = user.kabupatenKota || '.....................';
+    
+    return `
+        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
+            <div>
+                <p>Mengetahui,</p>
+                <p>${kepalaLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${user.kepalaSekolahNama || '( ............................. )'}
+                </p>
+                <p>NIP. ${user.kepalaSekolahNip || '................................'}</p>
+            </div>
+            <div>
+                <p>${lokasi}, ..................... 20....</p>
+                <p>${guruLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${user.nama || '( ............................. )'}
+                </p>
+                <p>NIP. ${user.nip || '................................'}</p>
+            </div>
+        </div>
+    `;
+}
+
+function generateKopDokumen(options = {}) {
+    const user = APP_STATE.currentUser || {};
+    const {
+        title = 'DOKUMEN',
+        subtitle = ''
+    } = options;
+    
+    return `
+        <div class="border-b-2 border-black pb-4 mb-6">
+            <div class="text-center">
+                <p class="text-sm font-medium">${user.schoolName || 'NAMA SEKOLAH'}</p>
+                <p class="text-xs text-gray-600">${user.schoolAddress || 'Alamat Sekolah'}</p>
+                <p class="text-xs text-gray-600">${user.kabupatenKota ? user.kabupatenKota + ', ' : ''}${user.provinsi || ''}</p>
+                <div class="border-t-2 border-black mt-2 pt-2">
+                    <h2 class="text-xl font-bold uppercase">${title}</h2>
+                    ${subtitle ? '<h3 class="text-lg font-semibold mt-1">' + subtitle + '</h3>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 // =====================================================
 // MASTER CP (CAPAIAN PEMBELAJARAN) PAGE
 // =====================================================
@@ -1528,21 +1681,15 @@ window.generateATP = async function() {
 window.loadATPData = function() {
     const subject = document.getElementById('atpFilterSubject').value;
     const kelas = document.getElementById('atpFilterKelas').value;
-    const semester = document.getElementById('atpFilterSemester').value;
+    const semester = document.getElementById('atpFilterSemester')?.value || '';
     
     const preview = document.getElementById('atpPreview');
     
     if (!subject || !kelas) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-sitemap text-gray-300 text-5xl mb-4"></i>
-                <p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat ATP</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-sitemap text-gray-300 text-5xl mb-4"></i><p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat ATP</p></div>';
         return;
     }
     
-    // Filter CP data
     let cpData = APP_STATE.masterData.filter(cp => 
         cp.subjectCode === subject && cp.kelas === kelas
     );
@@ -1551,20 +1698,10 @@ window.loadATPData = function() {
     const user = APP_STATE.currentUser;
     
     if (cpData.length === 0) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i>
-                <p class="text-gray-500">Tidak ada data CP untuk mata pelajaran dan kelas yang dipilih</p>
-                <button onclick="switchTab('master-cp')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    <i class="fas fa-plus mr-2"></i>
-                    Tambah CP
-                </button>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i><p class="text-gray-500">Tidak ada data CP untuk mata pelajaran dan kelas yang dipilih</p><button onclick="switchTab(\'master-cp\')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Tambah CP</button></div>';
         return;
     }
     
-    // Group by elemen
     const groupedByElemen = {};
     cpData.forEach(cp => {
         if (!groupedByElemen[cp.elemen]) {
@@ -1573,14 +1710,61 @@ window.loadATPData = function() {
         groupedByElemen[cp.elemen].push(cp);
     });
     
+    let elemenContent = '';
+    let elemenIndex = 0;
+    for (const [elemen, cps] of Object.entries(groupedByElemen)) {
+        let rowsContent = '';
+        cps.forEach((cp, index) => {
+            rowsContent += `
+                <tr>
+                    <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
+                    <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
+                    <td class="border border-gray-400 p-2">
+                        <ul class="list-disc list-inside text-sm">
+                            <li>Memahami konsep ${elemen.toLowerCase()}</li>
+                            <li>Menganalisis ${elemen.toLowerCase()} dalam konteks kehidupan</li>
+                            <li>Menerapkan ${elemen.toLowerCase()} dalam kehidupan sehari-hari</li>
+                        </ul>
+                    </td>
+                    <td class="border border-gray-400 p-2 text-center">${(index * 2) + 1}-${(index * 2) + 2}</td>
+                    <td class="border border-gray-400 p-2 text-center">4</td>
+                </tr>
+            `;
+        });
+        
+        elemenContent += `
+            <div class="mb-6 ${elemenIndex > 0 ? 'page-break' : ''}">
+                <h4 class="font-bold text-gray-800 mb-3 bg-purple-100 p-2 rounded">Elemen: ${elemen}</h4>
+                <table class="w-full border-collapse border border-gray-400 text-sm">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border border-gray-400 p-2 w-12">No</th>
+                            <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
+                            <th class="border border-gray-400 p-2">Tujuan Pembelajaran</th>
+                            <th class="border border-gray-400 p-2 w-24">Minggu ke-</th>
+                            <th class="border border-gray-400 p-2 w-20">JP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsContent}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        elemenIndex++;
+    }
+    
+    let dimensiContent = '';
+    DIMENSI_PROFIL_LULUSAN.forEach(dim => {
+        dimensiContent += `<div class="flex items-center text-sm"><i class="fas fa-check-circle text-green-500 mr-2"></i>${dim.nama}</div>`;
+    });
+    
     preview.innerHTML = `
-        <!-- Header Dokumen -->
         ${generateKopDokumen({
             title: 'ALUR TUJUAN PEMBELAJARAN (ATP)',
             subtitle: subjectInfo?.nama || subject
         })}
         
-        <!-- Identitas -->
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
             <div>
                 <table class="w-full">
@@ -1598,132 +1782,16 @@ window.loadATPData = function() {
             </div>
         </div>
         
-        <!-- Tabel ATP -->
-        ${Object.entries(groupedByElemen).map(([elemen, cps], elemenIndex) => `
-            <div class="mb-6 ${elemenIndex > 0 ? 'page-break' : ''}">
-                <h4 class="font-bold text-gray-800 mb-3 bg-purple-100 p-2 rounded">
-                    Elemen: ${elemen}
-                </h4>
-                
-                <table class="w-full border-collapse border border-gray-400 text-sm">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border border-gray-400 p-2 w-12">No</th>
-                            <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
-                            <th class="border border-gray-400 p-2">Tujuan Pembelajaran</th>
-                            <th class="border border-gray-400 p-2 w-24">Minggu ke-</th>
-                            <th class="border border-gray-400 p-2 w-20">JP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${cps.map((cp, index) => `
-                            <tr>
-                                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
-                                <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
-                                <td class="border border-gray-400 p-2">
-                                    <ul class="list-disc list-inside text-sm">
-                                        <li>Memahami konsep ${elemen.toLowerCase()}</li>
-                                        <li>Menganalisis ${elemen.toLowerCase()} dalam konteks kehidupan</li>
-                                        <li>Menerapkan ${elemen.toLowerCase()} dalam kehidupan sehari-hari</li>
-                                    </ul>
-                                </td>
-                                <td class="border border-gray-400 p-2 text-center">${(index * 2) + 1}-${(index * 2) + 2}</td>
-                                <td class="border border-gray-400 p-2 text-center">4</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `).join('')}
+        ${elemenContent}
         
-        <!-- Dimensi Profil Lulusan -->
         <div class="mt-6 p-4 bg-blue-50 rounded-lg">
             <h4 class="font-bold text-gray-800 mb-3">Dimensi Profil Lulusan yang Dikembangkan:</h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                ${DIMENSI_PROFIL_LULUSAN.map(dim => `
-                    <div class="flex items-center text-sm">
-                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                        ${dim.nama}
-                    </div>
-                `).join('')}
+                ${dimensiContent}
             </div>
         </div>
         
-        <!-- Tanda Tangan -->
-        ${generateTandaTangan({
-            guruLabel: 'Guru Mata Pelajaran'
-        })}
-    `;
-};
-        
-        <!-- Tabel ATP -->
-        ${Object.entries(groupedByElemen).map(([elemen, cps], elemenIndex) => `
-            <div class="mb-6 ${elemenIndex > 0 ? 'page-break' : ''}">
-                <h4 class="font-bold text-gray-800 mb-3 bg-gray-100 p-2 rounded">
-                    Elemen: ${elemen}
-                </h4>
-                
-                <table class="w-full border-collapse border border-gray-400 text-sm">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="border border-gray-400 p-2 w-12">No</th>
-                            <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
-                            <th class="border border-gray-400 p-2">Tujuan Pembelajaran</th>
-                            <th class="border border-gray-400 p-2 w-24">Minggu ke-</th>
-                            <th class="border border-gray-400 p-2 w-20">JP</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${cps.map((cp, index) => `
-                            <tr>
-                                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
-                                <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
-                                <td class="border border-gray-400 p-2">
-                                    <ul class="list-disc list-inside text-sm">
-                                        <li>Memahami konsep ${elemen.toLowerCase()}</li>
-                                        <li>Menganalisis ${elemen.toLowerCase()} dalam konteks kehidupan</li>
-                                        <li>Menerapkan ${elemen.toLowerCase()} dalam kehidupan sehari-hari</li>
-                                    </ul>
-                                </td>
-                                <td class="border border-gray-400 p-2 text-center">${(index * 2) + 1}-${(index * 2) + 2}</td>
-                                <td class="border border-gray-400 p-2 text-center">4</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `).join('')}
-        
-        <!-- Dimensi Profil Lulusan -->
-        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h4 class="font-bold text-gray-800 mb-3">Dimensi Profil Lulusan yang Dikembangkan:</h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                ${DIMENSI_PROFIL_LULUSAN.map(dim => `
-                    <div class="flex items-center text-sm">
-                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                        ${dim.nama}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-        
-        <!-- Tanda Tangan -->
-        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-            <div>
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
-                <p>NIP. ................................</p>
-            </div>
-            <div>
-                <p>..................., ..................... 20....</p>
-                <p>Guru Mata Pelajaran</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
-                <p>NIP. ${user.nip || '................................'}</p>
-            </div>
-        </div>
+        ${generateTandaTangan({ guruLabel: 'Guru Mata Pelajaran' })}
     `;
 };
 
@@ -1842,21 +1910,15 @@ window.generateKKTP = async function() {
 window.loadKKTPData = function() {
     const subject = document.getElementById('kktpFilterSubject').value;
     const kelas = document.getElementById('kktpFilterKelas').value;
-    const elemen = document.getElementById('kktpFilterElemen').value;
+    const elemen = document.getElementById('kktpFilterElemen')?.value || '';
     
     const preview = document.getElementById('kktpPreview');
     
     if (!subject || !kelas) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-clipboard-check text-gray-300 text-5xl mb-4"></i>
-                <p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat KKTP</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-clipboard-check text-gray-300 text-5xl mb-4"></i><p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat KKTP</p></div>';
         return;
     }
     
-    // Filter CP data
     let cpData = APP_STATE.masterData.filter(cp => 
         cp.subjectCode === subject && cp.kelas === kelas
     );
@@ -1869,23 +1931,40 @@ window.loadKKTPData = function() {
     const user = APP_STATE.currentUser;
     
     if (cpData.length === 0) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i>
-                <p class="text-gray-500">Tidak ada data CP untuk mata pelajaran dan kelas yang dipilih</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i><p class="text-gray-500">Tidak ada data CP untuk mata pelajaran dan kelas yang dipilih</p></div>';
         return;
     }
     
+    let rowsContent = '';
+    cpData.forEach((cp, index) => {
+        rowsContent += `
+            <tr>
+                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
+                <td class="border border-gray-400 p-2">
+                    <p class="font-medium mb-1">${cp.elemen}</p>
+                    <p class="text-gray-600">${cp.capaianPembelajaran}</p>
+                </td>
+                <td class="border border-gray-400 p-2 text-xs text-center">Belum mampu memahami konsep dasar</td>
+                <td class="border border-gray-400 p-2 text-xs text-center">Mampu memahami konsep dengan bimbingan</td>
+                <td class="border border-gray-400 p-2 text-xs text-center">Mampu memahami dan menerapkan konsep secara mandiri</td>
+                <td class="border border-gray-400 p-2 text-xs text-center">Mampu menganalisis dan mengembangkan konsep</td>
+                <td class="border border-gray-400 p-2 text-xs">
+                    <ul class="list-disc list-inside">
+                        <li>Observasi</li>
+                        <li>Tes Tertulis</li>
+                        <li>Praktik</li>
+                    </ul>
+                </td>
+            </tr>
+        `;
+    });
+    
     preview.innerHTML = `
-        <!-- Header Dokumen -->
         ${generateKopDokumen({
             title: 'KRITERIA KETERCAPAIAN TUJUAN PEMBELAJARAN (KKTP)',
             subtitle: subjectInfo?.nama || subject
         })}
         
-        <!-- Identitas -->
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
             <div>
                 <table class="w-full">
@@ -1903,7 +1982,6 @@ window.loadKKTPData = function() {
             </div>
         </div>
         
-        <!-- Tabel KKTP -->
         <table class="w-full border-collapse border border-gray-400 text-sm mb-6">
             <thead>
                 <tr class="bg-gray-200">
@@ -1920,38 +1998,10 @@ window.loadKKTPData = function() {
                 </tr>
             </thead>
             <tbody>
-                ${cpData.map((cp, index) => `
-                    <tr>
-                        <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
-                        <td class="border border-gray-400 p-2">
-                            <p class="font-medium mb-1">${cp.elemen}</p>
-                            <p class="text-gray-600">${cp.capaianPembelajaran}</p>
-                        </td>
-                        <td class="border border-gray-400 p-2 text-xs text-center">
-                            Belum mampu memahami konsep dasar
-                        </td>
-                        <td class="border border-gray-400 p-2 text-xs text-center">
-                            Mampu memahami konsep dengan bimbingan
-                        </td>
-                        <td class="border border-gray-400 p-2 text-xs text-center">
-                            Mampu memahami dan menerapkan konsep secara mandiri
-                        </td>
-                        <td class="border border-gray-400 p-2 text-xs text-center">
-                            Mampu menganalisis dan mengembangkan konsep
-                        </td>
-                        <td class="border border-gray-400 p-2 text-xs">
-                            <ul class="list-disc list-inside">
-                                <li>Observasi</li>
-                                <li>Tes Tertulis</li>
-                                <li>Praktik</li>
-                            </ul>
-                        </td>
-                    </tr>
-                `).join('')}
+                ${rowsContent}
             </tbody>
         </table>
         
-        <!-- Rubrik Penilaian -->
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
             <h4 class="font-bold text-gray-800 mb-3">Keterangan Kriteria:</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -1966,10 +2016,7 @@ window.loadKKTPData = function() {
             </div>
         </div>
         
-        <!-- Tanda Tangan -->
-        ${generateTandaTangan({
-            guruLabel: 'Guru Mata Pelajaran'
-        })}
+        ${generateTandaTangan({ guruLabel: 'Guru Mata Pelajaran' })}
     `;
 };
 
@@ -3499,16 +3546,10 @@ window.loadProtaData = function() {
     const user = APP_STATE.currentUser;
     
     if (!subject || !kelas) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-calendar-alt text-gray-300 text-5xl mb-4"></i>
-                <p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat Program Tahunan</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-calendar-alt text-gray-300 text-5xl mb-4"></i><p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat Program Tahunan</p></div>';
         return;
     }
     
-    // Get CP data for this subject and class
     const cpData = APP_STATE.masterData.filter(cp => 
         cp.subjectCode === subject && cp.kelas === kelas
     );
@@ -3516,33 +3557,57 @@ window.loadProtaData = function() {
     const subjectInfo = APP_STATE.subjects.find(s => s.kode === subject);
     
     if (cpData.length === 0) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i>
-                <p class="text-gray-500">Tidak ada data CP. Silakan tambah CP terlebih dahulu.</p>
-                <button onclick="switchTab('master-cp')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">
-                    Tambah CP
-                </button>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i><p class="text-gray-500">Tidak ada data CP. Silakan tambah CP terlebih dahulu.</p><button onclick="switchTab(\'master-cp\')" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">Tambah CP</button></div>';
         return;
     }
     
-    // Calculate weeks per semester (roughly 18 weeks each)
     const weeksPerSemester = 18;
     const cpPerSemester = Math.ceil(cpData.length / 2);
-    
     const semester1CPs = cpData.slice(0, cpPerSemester);
     const semester2CPs = cpData.slice(cpPerSemester);
     
+    let sem1Rows = '';
+    semester1CPs.forEach((cp, i) => {
+        const jp = Math.floor(weeksPerSemester / semester1CPs.length) * 2;
+        sem1Rows += `
+            <tr>
+                <td class="border border-gray-400 p-2 text-center">${i + 1}</td>
+                <td class="border border-gray-400 p-2">${cp.elemen}</td>
+                <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
+                <td class="border border-gray-400 p-2 text-center">${jp} JP</td>
+                <td class="border border-gray-400 p-2 text-center">-</td>
+            </tr>
+        `;
+    });
+    
+    const totalJpSem1 = semester1CPs.length * Math.floor(weeksPerSemester / semester1CPs.length) * 2;
+    
+    let sem2Rows = '';
+    if (semester2CPs.length > 0) {
+        semester2CPs.forEach((cp, i) => {
+            const jp = Math.floor(weeksPerSemester / semester2CPs.length) * 2;
+            sem2Rows += `
+                <tr>
+                    <td class="border border-gray-400 p-2 text-center">${i + 1}</td>
+                    <td class="border border-gray-400 p-2">${cp.elemen}</td>
+                    <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
+                    <td class="border border-gray-400 p-2 text-center">${jp} JP</td>
+                    <td class="border border-gray-400 p-2 text-center">-</td>
+                </tr>
+            `;
+        });
+    } else {
+        sem2Rows = '<tr><td class="border border-gray-400 p-2 text-center" colspan="5">Tidak ada data CP untuk semester 2</td></tr>';
+    }
+    
+    const totalJpSem2 = semester2CPs.length > 0 ? semester2CPs.length * Math.floor(weeksPerSemester / semester2CPs.length) * 2 : 0;
+    
     preview.innerHTML = `
-        <!-- Header Dokumen -->
         ${generateKopDokumen({
             title: 'PROGRAM TAHUNAN (PROTA)',
             subtitle: subjectInfo?.nama || subject
         })}
         
-        <!-- Identitas -->
         <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
             <div>
                 <table class="w-full">
@@ -3560,7 +3625,6 @@ window.loadProtaData = function() {
             </div>
         </div>
         
-        <!-- Semester 1 -->
         <div class="mb-8">
             <h3 class="font-bold text-lg mb-4 bg-teal-100 p-2 rounded">SEMESTER 1 (GANJIL)</h3>
             <table class="w-full border-collapse text-sm">
@@ -3570,30 +3634,21 @@ window.loadProtaData = function() {
                         <th class="border border-gray-400 p-2">Elemen</th>
                         <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
                         <th class="border border-gray-400 p-2 w-28">Alokasi Waktu</th>
-                        <th class="border border-gray-400 p-2 w-20">Keterangan</th>
+                        <th class="border border-gray-400 p-2 w-20">Ket</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${semester1CPs.map((cp, i) => `
-                        <tr>
-                            <td class="border border-gray-400 p-2 text-center">${i + 1}</td>
-                            <td class="border border-gray-400 p-2">${cp.elemen}</td>
-                            <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
-                            <td class="border border-gray-400 p-2 text-center">${Math.floor(weeksPerSemester / semester1CPs.length) * 2} JP</td>
-                            <td class="border border-gray-400 p-2 text-center">-</td>
-                        </tr>
-                    `).join('')}
+                    ${sem1Rows}
                     <tr class="bg-gray-50 font-bold">
                         <td class="border border-gray-400 p-2 text-center" colspan="3">Jumlah JP Semester 1</td>
-                        <td class="border border-gray-400 p-2 text-center">${semester1CPs.length * Math.floor(weeksPerSemester / semester1CPs.length) * 2} JP</td>
+                        <td class="border border-gray-400 p-2 text-center">${totalJpSem1} JP</td>
                         <td class="border border-gray-400 p-2"></td>
                     </tr>
                 </tbody>
             </table>
         </div>
         
-        <!-- Semester 2 -->
-        <div class="mb-8 page-break">
+        <div class="mb-8">
             <h3 class="font-bold text-lg mb-4 bg-green-100 p-2 rounded">SEMESTER 2 (GENAP)</h3>
             <table class="w-full border-collapse text-sm">
                 <thead>
@@ -3602,27 +3657,15 @@ window.loadProtaData = function() {
                         <th class="border border-gray-400 p-2">Elemen</th>
                         <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
                         <th class="border border-gray-400 p-2 w-28">Alokasi Waktu</th>
-                        <th class="border border-gray-400 p-2 w-20">Keterangan</th>
+                        <th class="border border-gray-400 p-2 w-20">Ket</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${semester2CPs.length > 0 ? semester2CPs.map((cp, i) => `
-                        <tr>
-                            <td class="border border-gray-400 p-2 text-center">${i + 1}</td>
-                            <td class="border border-gray-400 p-2">${cp.elemen}</td>
-                            <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
-                            <td class="border border-gray-400 p-2 text-center">${Math.floor(weeksPerSemester / semester2CPs.length) * 2} JP</td>
-                            <td class="border border-gray-400 p-2 text-center">-</td>
-                        </tr>
-                    `).join('') : `
-                        <tr>
-                            <td class="border border-gray-400 p-2 text-center" colspan="5">Tidak ada data CP untuk semester 2</td>
-                        </tr>
-                    `}
+                    ${sem2Rows}
                     ${semester2CPs.length > 0 ? `
                         <tr class="bg-gray-50 font-bold">
                             <td class="border border-gray-400 p-2 text-center" colspan="3">Jumlah JP Semester 2</td>
-                            <td class="border border-gray-400 p-2 text-center">${semester2CPs.length * Math.floor(weeksPerSemester / semester2CPs.length) * 2} JP</td>
+                            <td class="border border-gray-400 p-2 text-center">${totalJpSem2} JP</td>
                             <td class="border border-gray-400 p-2"></td>
                         </tr>
                     ` : ''}
@@ -3630,10 +3673,7 @@ window.loadProtaData = function() {
             </table>
         </div>
         
-        <!-- Tanda Tangan -->
-        ${generateTandaTangan({
-            guruLabel: 'Guru Mata Pelajaran'
-        })}
+        ${generateTandaTangan({ guruLabel: 'Guru Mata Pelajaran' })}
     `;
 };
 
@@ -3741,12 +3781,7 @@ window.loadPromesData = function() {
     const user = APP_STATE.currentUser;
     
     if (!subject || !kelas) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-calendar-week text-gray-300 text-5xl mb-4"></i>
-                <p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat Program Semester</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-calendar-week text-gray-300 text-5xl mb-4"></i><p class="text-gray-500">Pilih mata pelajaran dan kelas untuk melihat Program Semester</p></div>';
         return;
     }
     
@@ -3757,50 +3792,79 @@ window.loadPromesData = function() {
     const subjectInfo = APP_STATE.subjects.find(s => s.kode === subject);
     
     if (cpData.length === 0) {
-        preview.innerHTML = `
-            <div class="text-center py-8">
-                <i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i>
-                <p class="text-gray-500">Tidak ada data CP untuk ditampilkan</p>
-            </div>
-        `;
+        preview.innerHTML = '<div class="text-center py-8"><i class="fas fa-exclamation-triangle text-yellow-400 text-5xl mb-4"></i><p class="text-gray-500">Tidak ada data CP untuk ditampilkan</p></div>';
         return;
     }
     
-    // Generate months for the semester
     const semester1Months = ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
     const semester2Months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'];
     const months = semester === '1' ? semester1Months : semester2Months;
     
-    // Calculate which CPs go in which semester
     const cpPerSemester = Math.ceil(cpData.length / 2);
     const semesterCPs = semester === '1' ? cpData.slice(0, cpPerSemester) : cpData.slice(cpPerSemester);
+    const displayCPs = semesterCPs.length > 0 ? semesterCPs : cpData.slice(0, 5);
+    
+    let monthHeaders = '';
+    let weekHeaders = '';
+    months.forEach(m => {
+        monthHeaders += `<th class="border border-gray-400 p-1" colspan="4">${m}</th>`;
+        weekHeaders += `
+            <th class="border border-gray-400 p-1 w-6">1</th>
+            <th class="border border-gray-400 p-1 w-6">2</th>
+            <th class="border border-gray-400 p-1 w-6">3</th>
+            <th class="border border-gray-400 p-1 w-6">4</th>
+        `;
+    });
+    
+    let bodyRows = '';
+    displayCPs.forEach((cp, index) => {
+        const weeksPerCP = Math.ceil(24 / displayCPs.length);
+        const startWeek = index * weeksPerCP;
+        const endWeek = Math.min(startWeek + weeksPerCP, 24);
+        
+        let weekCells = '';
+        for (let w = 0; w < 24; w++) {
+            const isActive = w >= startWeek && w < endWeek;
+            weekCells += `<td class="border border-gray-400 p-1 text-center ${isActive ? 'bg-pink-300' : ''}">${isActive ? '✓' : ''}</td>`;
+        }
+        
+        bodyRows += `
+            <tr>
+                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
+                <td class="border border-gray-400 p-2">
+                    <span class="font-medium">${cp.elemen}</span><br>
+                    <span class="text-gray-600 text-xs">${cp.capaianPembelajaran.substring(0, 80)}...</span>
+                </td>
+                <td class="border border-gray-400 p-2 text-center">${weeksPerCP * 2}</td>
+                ${weekCells}
+                <td class="border border-gray-400 p-2 text-center">-</td>
+            </tr>
+        `;
+    });
     
     preview.innerHTML = `
-        <!-- Kop Dokumen -->
-        <div class="border-b-2 border-black pb-4 mb-6">
-            <div class="text-center">
-                <h2 class="text-xl font-bold uppercase">PROGRAM SEMESTER (PROMES)</h2>
+        ${generateKopDokumen({
+            title: 'PROGRAM SEMESTER (PROMES)',
+            subtitle: subjectInfo?.nama || subject
+        })}
+        
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Satuan Pendidikan</td><td class="py-1">: ${user.schoolName}</td></tr>
+                    <tr><td class="py-1">Mata Pelajaran</td><td class="py-1">: ${subjectInfo?.nama || subject}</td></tr>
+                    <tr><td class="py-1">Kelas / Semester</td><td class="py-1">: ${kelas} / ${semester === '1' ? 'Ganjil' : 'Genap'}</td></tr>
+                </table>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
-                <div>
-                    <table class="w-full">
-                        <tr><td class="w-36">Satuan Pendidikan</td><td>: ${user.schoolName}</td></tr>
-                        <tr><td>Mata Pelajaran</td><td>: ${subjectInfo?.nama || subject}</td></tr>
-                        <tr><td>Kelas / Semester</td><td>: ${kelas} / ${semester === '1' ? 'Ganjil' : 'Genap'}</td></tr>
-                    </table>
-                </div>
-                <div>
-                    <table class="w-full">
-                        <tr><td class="w-36">Tahun Pelajaran</td><td>: ${user.tahunAjaran}</td></tr>
-                        <tr><td>Fase</td><td>: ${cpData[0]?.fase || '-'}</td></tr>
-                        <tr><td>Guru Pengampu</td><td>: ${user.nama}</td></tr>
-                    </table>
-                </div>
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Tahun Pelajaran</td><td class="py-1">: ${user.tahunAjaran}</td></tr>
+                    <tr><td class="py-1">Fase</td><td class="py-1">: ${cpData[0]?.fase || '-'}</td></tr>
+                    <tr><td class="py-1">Guru Pengampu</td><td class="py-1">: ${user.nama}</td></tr>
+                </table>
             </div>
         </div>
         
-        <!-- Tabel Promes -->
         <div class="overflow-x-auto">
             <table class="w-full border-collapse text-xs min-w-[1000px]">
                 <thead>
@@ -3808,48 +3872,19 @@ window.loadPromesData = function() {
                         <th class="border border-gray-400 p-2 w-8" rowspan="2">No</th>
                         <th class="border border-gray-400 p-2" rowspan="2">Elemen / Capaian Pembelajaran</th>
                         <th class="border border-gray-400 p-2 w-12" rowspan="2">JP</th>
-                        ${months.map(m => `<th class="border border-gray-400 p-1" colspan="4">${m}</th>`).join('')}
+                        ${monthHeaders}
                         <th class="border border-gray-400 p-2 w-16" rowspan="2">Ket</th>
                     </tr>
                     <tr class="bg-pink-50">
-                        ${months.map(() => `
-                            <th class="border border-gray-400 p-1 w-6">1</th>
-                            <th class="border border-gray-400 p-1 w-6">2</th>
-                            <th class="border border-gray-400 p-1 w-6">3</th>
-                            <th class="border border-gray-400 p-1 w-6">4</th>
-                        `).join('')}
+                        ${weekHeaders}
                     </tr>
                 </thead>
                 <tbody>
-                    ${(semesterCPs.length > 0 ? semesterCPs : cpData.slice(0, 5)).map((cp, index) => {
-                        // Calculate which weeks this CP should be marked
-                        const weeksPerCP = Math.ceil(24 / (semesterCPs.length || 5));
-                        const startWeek = index * weeksPerCP;
-                        const endWeek = Math.min(startWeek + weeksPerCP, 24);
-                        
-                        return `
-                            <tr>
-                                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
-                                <td class="border border-gray-400 p-2">
-                                    <span class="font-medium">${cp.elemen}</span><br>
-                                    <span class="text-gray-600">${cp.capaianPembelajaran.substring(0, 100)}...</span>
-                                </td>
-                                <td class="border border-gray-400 p-2 text-center">${weeksPerCP * 2}</td>
-                                ${Array(24).fill(0).map((_, weekIndex) => {
-                                    const isActive = weekIndex >= startWeek && weekIndex < endWeek;
-                                    return `<td class="border border-gray-400 p-1 text-center ${isActive ? 'bg-pink-300' : ''}">${isActive ? '✓' : ''}</td>`;
-                                }).join('')}
-                                <td class="border border-gray-400 p-2 text-center">-</td>
-                            </tr>
-                        `;
-                    }).join('')}
+                    ${bodyRows}
                 </tbody>
             </table>
         </div>
         
-       // Di akhir fungsi loadPromesData, ganti bagian tanda tangan dengan:
-        
-        <!-- Keterangan -->
         <div class="mt-4 p-4 bg-gray-50 rounded-lg text-sm">
             <h4 class="font-bold mb-2">Keterangan:</h4>
             <ul class="list-disc list-inside text-gray-600">
@@ -3859,10 +3894,7 @@ window.loadPromesData = function() {
             </ul>
         </div>
         
-        <!-- Tanda Tangan -->
-        ${generateTandaTangan({
-            guruLabel: 'Guru Mata Pelajaran'
-        })}
+        ${generateTandaTangan({ guruLabel: 'Guru Mata Pelajaran' })}
     `;
 };
 
@@ -4992,11 +5024,24 @@ window.viewModulAjar = function(id) {
                         </div>
                     </div>
                 </div>
-                                      
+                
                 <!-- Tanda Tangan -->
-                ${generateTandaTangan({
-                    guruLabel: 'Guru Mata Pelajaran'
-                })}
+                <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
+                    <div>
+                        <p>Mengetahui,</p>
+                        <p>Kepala Sekolah</p>
+                        <div class="h-20"></div>
+                        <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
+                        <p>NIP. ................................</p>
+                    </div>
+                    <div>
+                        <p>..................., ..................... 20....</p>
+                        <p>Guru Mata Pelajaran</p>
+                        <div class="h-20"></div>
+                        <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
+                        <p>NIP. ${user.nip || '................................'}</p>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -5545,11 +5590,9 @@ window.viewLKPD = function(id) {
                     `).join('')}
                 </div>
                 
-                                <!-- Footer -->
+                <!-- Footer -->
                 <div class="text-center text-sm text-gray-500 border-t pt-4 mt-8">
-                    <p>${user.schoolName}</p>
-                    <p>${lkpd.subjectName || lkpd.subjectCode} | Kelas ${lkpd.kelas}</p>
-                    <p class="mt-2">Guru Pengampu: ${user.nama}</p>
+                    <p>${user.schoolName} | ${lkpd.subjectName || lkpd.subjectCode} | Kelas ${lkpd.kelas}</p>
                 </div>
             </div>
         </div>
@@ -5626,77 +5669,6 @@ window.exportLKPDToPDF = function(id) {
     doc.save(`LKPD_${lkpd.judul.replace(/\s+/g, '_')}.pdf`);
     showToast('PDF berhasil diunduh!', 'success');
 };
-
-// =====================================================
-// HELPER: GENERATE TANDA TANGAN DOKUMEN
-// =====================================================
-function generateTandaTangan(options = {}) {
-    const user = APP_STATE.currentUser || {};
-    const {
-        showDate = true,
-        dateLabel = '.....................',
-        monthYear = '..................... 20....',
-        guruLabel = 'Guru Mata Pelajaran',
-        kepalaLabel = 'Kepala Sekolah'
-    } = options;
-    
-    const lokasi = user.kabupatenKota || dateLabel;
-    const tanggal = showDate ? `${lokasi}, ${monthYear}` : '';
-    
-    return `
-        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-            <div>
-                <p>Mengetahui,</p>
-                <p>${kepalaLabel}</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
-                    ${user.kepalaSekolahNama || '( ............................. )'}
-                </p>
-                <p>NIP. ${user.kepalaSekolahNip || '................................'}</p>
-            </div>
-            <div>
-                <p>${tanggal}</p>
-                <p>${guruLabel}</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
-                    ${user.nama || '( ............................. )'}
-                </p>
-                <p>NIP. ${user.nip || '................................'}</p>
-            </div>
-        </div>
-    `;
-}
-
-// Helper untuk header dokumen
-function generateKopDokumen(options = {}) {
-    const user = APP_STATE.currentUser || {};
-    const {
-        title = 'DOKUMEN',
-        subtitle = '',
-        showLogo = false
-    } = options;
-    
-    return `
-        <div class="border-b-2 border-black pb-4 mb-6">
-            <div class="text-center">
-                ${showLogo ? `
-                    <div class="flex justify-center mb-2">
-                        <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-                            <i class="fas fa-school text-gray-500 text-2xl"></i>
-                        </div>
-                    </div>
-                ` : ''}
-                <p class="text-sm font-medium">${user.schoolName || 'NAMA SEKOLAH'}</p>
-                <p class="text-xs text-gray-600">${user.schoolAddress || 'Alamat Sekolah'}</p>
-                <p class="text-xs text-gray-600">${user.kabupatenKota ? user.kabupatenKota + ', ' : ''}${user.provinsi || ''}</p>
-                <div class="border-t-2 border-black mt-2 pt-2">
-                    <h2 class="text-xl font-bold uppercase">${title}</h2>
-                    ${subtitle ? `<h3 class="text-lg font-semibold mt-1">${subtitle}</h3>` : ''}
-                </div>
-            </div>
-        </div>
-    `;
-}
 
 // =====================================================
 // CONTINUE IN NEXT PART (Bank Soal & Export Modal)
