@@ -4,6 +4,8 @@
 
 import { 
     db, 
+    auth,
+    googleProvider,
     collection, 
     doc, 
     addDoc, 
@@ -18,82 +20,193 @@ import {
     onSnapshot,
     serverTimestamp,
     writeBatch,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
     COLLECTIONS,
     DIMENSI_PROFIL_LULUSAN,
     JENJANG,
-    DEFAULT_SUBJECTS
+    DEFAULT_SUBJECTS,
+    getFaseFromKelas,
+    getKelasFromFase
 } from './firebase-config.js';
 
 // =====================================================
 // GLOBAL STATE
 // =====================================================
 const APP_STATE = {
-    currentUser: null,
-    currentSchool: null,
+    // Auth
+    authUser: null,           // Firebase Auth user
+    
+    // User Data
+    currentUser: null,        // User profile from Firestore
+    currentSchool: null,      // School data from Firestore
+    
+    // App State
     currentTab: 'dashboard',
-    masterData: [],
-    subjects: [],
-    schedules: [],
-    calendarEvents: [],
-    isLoading: false
+    isLoading: false,
+    isProfileComplete: false,
+    
+    // Shared Data (per NPSN)
+    masterData: [],           // CP (shared per NPSN + Fase)
+    subjects: [],             // Mata Pelajaran (shared per NPSN)
+    schedules: [],            // Jadwal (shared per NPSN)
+    calendarEvents: [],       // Kalender (shared per NPSN)
+    
+    // Private Data (per User)
+    modulAjar: [],
+    lkpd: [],
+    bankSoal: []
 };
 
 // =====================================================
 // INITIALIZATION
 // =====================================================
-document.addEventListener('DOMContentLoaded', async () => {
-    await initializeApp();
+document.addEventListener('DOMContentLoaded', () => {
+    initAuthListener();
 });
 
-async function initializeApp() {
-    try {
-        // Check for saved user data
-        const savedUser = localStorage.getItem('guruSmartUser');
-        if (savedUser) {
-            APP_STATE.currentUser = JSON.parse(savedUser);
-            APP_STATE.currentSchool = APP_STATE.currentUser.school;
-            updateUserDisplay();
+function initAuthListener() {
+    onAuthStateChanged(auth, async (user) => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loginScreen = document.getElementById('loginScreen');
+        const mainApp = document.getElementById('mainApp');
+        
+        if (user) {
+            // User is signed in
+            APP_STATE.authUser = user;
+            
+            try {
+                // Load user profile
+                await loadUserProfile(user);
+                
+                // Check if profile is complete
+                if (APP_STATE.currentUser?.npsn) {
+                    APP_STATE.isProfileComplete = true;
+                    await loadSchoolData(APP_STATE.currentUser.npsn);
+                    await loadAllSharedData();
+                }
+                
+                // Update UI
+                updateUserDisplay();
+                
+                // Show main app
+                loadingScreen.style.display = 'none';
+                loginScreen.classList.add('hidden');
+                mainApp.classList.remove('hidden');
+                
+                // Render dashboard
+                renderTabContent('dashboard');
+                
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showToast('Gagal memuat data pengguna', 'error');
+                loadingScreen.style.display = 'none';
+                loginScreen.classList.remove('hidden');
+            }
+        } else {
+            // User is signed out
+            APP_STATE.authUser = null;
+            APP_STATE.currentUser = null;
+            APP_STATE.currentSchool = null;
+            APP_STATE.isProfileComplete = false;
+            
+            loadingScreen.style.display = 'none';
+            loginScreen.classList.remove('hidden');
+            mainApp.classList.add('hidden');
         }
-        
-        // Load initial data
-        await loadAllData();
-        
-        // Render dashboard
-        renderTabContent('dashboard');
-        
-        // Hide loading screen
-        document.getElementById('loadingScreen').style.display = 'none';
-        
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showToast('Gagal memuat aplikasi', 'error');
-        document.getElementById('loadingScreen').style.display = 'none';
-    }
+    });
 }
 
 // =====================================================
-// DATA LOADING
+// AUTHENTICATION FUNCTIONS
 // =====================================================
-async function loadAllData() {
+window.loginWithGoogle = async function() {
     try {
-        if (!APP_STATE.currentUser?.npsn) {
-            return;
+        const result = await signInWithPopup(auth, googleProvider);
+        showToast('Login berhasil!', 'success');
+    } catch (error) {
+        console.error('Login error:', error);
+        if (error.code === 'auth/popup-closed-by-user') {
+            showToast('Login dibatalkan', 'warning');
+        } else {
+            showToast('Gagal login: ' + error.message, 'error');
         }
+    }
+};
+
+window.handleLogout = async function() {
+    if (!confirm('Apakah Anda yakin ingin keluar?')) return;
+    
+    try {
+        await signOut(auth);
+        showToast('Logout berhasil', 'success');
+    } catch (error) {
+        console.error('Logout error:', error);
+        showToast('Gagal logout', 'error');
+    }
+};
+
+// =====================================================
+// USER & SCHOOL DATA LOADING
+// =====================================================
+async function loadUserProfile(authUser) {
+    const userDocRef = doc(db, COLLECTIONS.USERS, authUser.uid visitorId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+        APP_STATE.currentUser = {
+            id: userDoc.id,
+            ...userDoc.data()
+        };
+    } else {
+        // Create new user profile
+        const newUser = {
+            uid: authUser.uid,
+            email: authUser.email,
+            nama: authUser.displayName || '',
+            photoURL: authUser.photoURL || '',
+            npsn: '',
+            nip: '',
+            phone: '',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
         
-        const npsn = APP_STATE.currentUser.npsn;
+        await setDoc(userDocRef, newUser);
+        APP_STATE.currentUser = { id: authUser.uid, ...newUser };
+    }
+}
+
+async function loadSchoolData(npsn) {
+    if (!npsn) return;
+    
+    const schoolDocRef = doc(db, COLLECTIONS.SCHOOLS, npsn);
+    const schoolDoc = await getDoc(schoolDocRef);
+    
+    if (schoolDoc.exists()) {
+        APP_STATE.currentSchool = {
+            id: schoolDoc.id,
+            ...schoolDoc.data()
+        };
         
-        // Load master data (CP)
-        const masterQuery = query(
-            collection(db, COLLECTIONS.MASTER_DATA),
-            where('npsn', '==', npsn)
-        );
-        const masterSnapshot = await getDocs(masterQuery);
-        APP_STATE.masterData = masterSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-        
-        // Load subjects
+        // Update school badge
+        const schoolBadge = document.getElementById('schoolBadge');
+        const schoolNameBadge = document.getElementById('schoolNameBadge');
+        if (schoolBadge && schoolNameBadge) {
+            schoolBadge.classList.remove('hidden');
+            schoolNameBadge.textContent = APP_STATE.currentSchool.schoolName || npsn;
+        }
+    }
+}
+
+async function loadAllSharedData() {
+    if (!APP_STATE.currentUser?.npsn) return;
+    
+    const npsn = APP_STATE.currentUser.npsn;
+    
+    try {
+        // Load Subjects (shared per NPSN)
         const subjectsQuery = query(
             collection(db, COLLECTIONS.SUBJECTS),
             where('npsn', '==', npsn)
@@ -104,7 +217,29 @@ async function loadAllData() {
             ...doc.data()
         }));
         
-        // Load schedules
+        // Initialize default subjects if empty
+        if (APP_STATE.subjects.length === 0 && APP_STATE.currentSchool?.jenjang) {
+            await initializeDefaultSubjects(npsn, APP_STATE.currentSchool.jenjang);
+            // Reload
+            const subjectsSnapshot2 = await getDocs(subjectsQuery);
+            APP_STATE.subjects = subjectsSnapshot2.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        }
+        
+        // Load Master Data / CP (shared per NPSN)
+        const masterQuery = query(
+            collection(db, COLLECTIONS.MASTER_DATA),
+            where('npsn', '==', npsn)
+        );
+        const masterSnapshot = await getDocs(masterQuery);
+        APP_STATE.masterData = masterSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        // Load Schedules (shared per NPSN)
         const schedulesQuery = query(
             collection(db, COLLECTIONS.SCHEDULES),
             where('npsn', '==', npsn)
@@ -115,7 +250,7 @@ async function loadAllData() {
             ...doc.data()
         }));
         
-        // Load calendar events
+        // Load Calendar Events (shared per NPSN)
         const calendarQuery = query(
             collection(db, COLLECTIONS.CALENDAR),
             where('npsn', '==', npsn)
@@ -127,9 +262,225 @@ async function loadAllData() {
         }));
         
     } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading shared data:', error);
         throw error;
     }
+}
+
+async function initializeDefaultSubjects(npsn, jenjang) {
+    const subjects = DEFAULT_SUBJECTS[jenjang] || [];
+    if (subjects.length === 0) return;
+    
+    const batch = writeBatch(db);
+    
+    for (const subject of subjects) {
+        const docRef = doc(collection(db, COLLECTIONS.SUBJECTS));
+        batch.set(docRef, {
+            ...subject,
+            npsn,
+            createdAt: serverTimestamp()
+        });
+    }
+    
+    await batch.commit();
+}
+
+function updateUserDisplay() {
+    const user = APP_STATE.authUser;
+    const profile = APP_STATE.currentUser;
+    
+    if (user) {
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const userPhoto = document.getElementById('userPhoto');
+        
+        if (userName) userName.textContent = profile?.nama || user.displayName || 'Guru';
+        if (userEmail) userEmail.textContent = user.email || '';
+        if (userPhoto) {
+            if (user.photoURL) {
+                userPhoto.src = user.photoURL;
+            } else {
+                userPhoto.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.nama || 'G')}&background=3b82f6&color=fff`;
+            }
+        }
+    }
+}
+
+// =====================================================
+// DATA REFRESH
+// =====================================================
+window.refreshData = async function() {
+    showToast('Memuat ulang data...', 'info');
+    
+    try {
+        if (APP_STATE.currentUser?.npsn) {
+            await loadSchoolData(APP_STATE.currentUser.npsn);
+            await loadAllSharedData();
+        }
+        
+        renderTabContent(APP_STATE.currentTab);
+        showToast('Data berhasil dimuat ulang', 'success');
+    } catch (error) {
+        console.error('Refresh error:', error);
+        showToast('Gagal memuat ulang data', 'error');
+    }
+};
+
+// =====================================================
+// NAVIGATION
+// =====================================================
+window.switchTab = function(tabId) {
+    APP_STATE.currentTab = tabId;
+    
+    // Update sidebar active state
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.tab === tabId) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Update page title
+    const titles = {
+        'dashboard': 'Dashboard',
+        'profil': 'Profil & Sekolah',
+        'master-cp': 'Input CP (Master Data)',
+        'mata-pelajaran': 'Mata Pelajaran',
+        'atp': 'Alur Tujuan Pembelajaran',
+        'kktp': 'Kriteria Ketercapaian Tujuan Pembelajaran',
+        'prota': 'Program Tahunan',
+        'promes': 'Program Semester',
+        'kalender': 'Kalender Pendidikan',
+        'jadwal': 'Jadwal Pelajaran',
+        'modul-ajar': 'Modul Ajar',
+        'lkpd': 'Lembar Kerja Peserta Didik',
+        'bank-soal': 'Bank Soal'
+    };
+    document.getElementById('pageTitle').textContent = titles[tabId] || 'Dashboard';
+    
+    // Close sidebar on mobile
+    if (window.innerWidth < 1024) {
+        toggleSidebar();
+    }
+    
+    // Render content
+    renderTabContent(tabId);
+};
+
+window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    sidebar.classList.toggle('-translate-x-full');
+    overlay.classList.toggle('hidden');
+};
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+function generateTandaTangan(options = {}) {
+    const user = APP_STATE.currentUser || {};
+    const school = APP_STATE.currentSchool || {};
+    const {
+        guruLabel = 'Guru Mata Pelajaran',
+        kepalaLabel = 'Kepala Sekolah'
+    } = options;
+    
+    const lokasi = school.kabupatenKota || user.kabupatenKota || '.....................';
+    
+    return `
+        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
+            <div>
+                <p>Mengetahui,</p>
+                <p>${kepalaLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${school.kepalaSekolahNama || '( ............................. )'}
+                </p>
+                <p>NIP. ${school.kepalaSekolahNip || '................................'}</p>
+            </div>
+            <div>
+                <p>${lokasi}, ..................... 20....</p>
+                <p>${guruLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${user.nama || '( ............................. )'}
+                </p>
+                <p>NIP. ${user.nip || '................................'}</p>
+            </div>
+        </div>
+    `;
+}
+
+function generateKopDokumen(options = {}) {
+    const school = APP_STATE.currentSchool || {};
+    const {
+        title = 'DOKUMEN',
+        subtitle = ''
+    } = options;
+    
+    return `
+        <div class="border-b-2 border-black pb-4 mb-6">
+            <div class="text-center">
+                <p class="text-sm font-medium">${school.schoolName || 'NAMA SEKOLAH'}</p>
+                <p class="text-xs text-gray-600">${school.schoolAddress || 'Alamat Sekolah'}</p>
+                <p class="text-xs text-gray-600">${school.kabupatenKota ? school.kabupatenKota + ', ' : ''}${school.provinsi || ''}</p>
+                <div class="border-t-2 border-black mt-2 pt-2">
+                    <h2 class="text-xl font-bold uppercase">${title}</h2>
+                    ${subtitle ? '<h3 class="text-lg font-semibold mt-1">' + subtitle + '</h3>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+window.showToast = function(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500',
+        info: 'bg-blue-500'
+    };
+    
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `toast ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg flex items-center`;
+    toast.innerHTML = `
+        <i class="fas fa-${icons[type]} mr-2"></i>
+        ${message}
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+};
+
+window.closeModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.remove();
+};
+
+function renderNeedProfileMessage() {
+    return `
+        <div class="bg-white rounded-xl shadow-sm p-8 text-center">
+            <i class="fas fa-user-edit text-gray-300 text-5xl mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-800 mb-2">Lengkapi Profil Terlebih Dahulu</h3>
+            <p class="text-gray-500 mb-4">Silakan lengkapi data profil dan NPSN sekolah untuk mengakses fitur ini</p>
+            <button onclick="switchTab('profil')" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-user-edit mr-2"></i>
+                Lengkapi Profil
+            </button>
+        </div>
+    `;
 }
 
 // =====================================================
@@ -405,220 +756,211 @@ function renderDashboard() {
 }
 
 // =====================================================
-// PROFIL PAGE (UPDATED - dengan Kepala Sekolah)
+// PROFIL PAGE - WITH SCHOOL DATA SHARING
 // =====================================================
 function renderProfilPage() {
     const user = APP_STATE.currentUser || {};
+    const school = APP_STATE.currentSchool || {};
+    const authUser = APP_STATE.authUser || {};
+    
     const jenjangOptions = Object.entries(JENJANG).map(([key, val]) => 
-        `<option value="${key}" ${user.jenjang === key ? 'selected' : ''}>${val.nama}</option>`
+        `<option value="${key}" ${school.jenjang === key ? 'selected' : ''}>${val.nama}</option>`
     ).join('');
+    
+    const hasExistingSchool = !!APP_STATE.currentSchool?.schoolName;
     
     return `
         <div class="max-w-4xl mx-auto space-y-6">
+            <!-- User Profile Card -->
             <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-6 flex items-center">
-                    <i class="fas fa-user-circle text-blue-600 mr-2"></i>
-                    Data Profil Guru
-                </h3>
+                <div class="flex items-center space-x-4 mb-6">
+                    <img src="${authUser.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.nama || 'G')}" 
+                         alt="Profile" class="w-16 h-16 rounded-full">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">${authUser.displayName || user.nama || 'Guru'}</h3>
+                        <p class="text-gray-500">${authUser.email}</p>
+                        <span class="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs mt-1">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Terverifikasi dengan Google
+                        </span>
+                    </div>
+                </div>
                 
-                <form id="profilForm" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form id="userProfileForm" class="space-y-4">
+                    <h4 class="font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-user text-blue-600 mr-2"></i>
+                        Data Pribadi Guru
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
-                            <input type="text" name="nama" value="${user.nama || ''}" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Masukkan nama lengkap">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap *</label>
+                            <input type="text" name="nama" value="${user.nama || authUser.displayName || ''}" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nama lengkap">
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">NIP</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
                             <input type="text" name="nip" value="${user.nip || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Masukkan NIP">
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nomor Induk Pegawai">
                         </div>
-                        
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                            <input type="email" name="email" value="${user.email || ''}" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="email@example.com">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">No. Telepon</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">No. Telepon</label>
                             <input type="tel" name="phone" value="${user.phone || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="08xxxxxxxxxx">
                         </div>
-                    </div>
-                    
-                    <hr class="my-6">
-                    
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-school text-green-600 mr-2"></i>
-                        Data Sekolah
-                    </h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">NPSN Sekolah *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">NPSN Sekolah *</label>
                             <input type="text" name="npsn" value="${user.npsn || ''}" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="8 digit NPSN" maxlength="8" pattern="[0-9]{8}">
-                            <p class="text-xs text-gray-500 mt-1">NPSN digunakan untuk kolaborasi dengan guru sekolah yang sama</p>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah *</label>
-                            <input type="text" name="schoolName" value="${user.schoolName || ''}" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Nama sekolah">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Jenjang Pendidikan *</label>
-                            <select name="jenjang" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Pilih Jenjang</option>
-                                ${jenjangOptions}
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Sekolah</label>
-                            <input type="text" name="schoolAddress" value="${user.schoolAddress || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Alamat lengkap sekolah">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Kabupaten/Kota</label>
-                            <input type="text" name="kabupatenKota" value="${user.kabupatenKota || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Nama kabupaten/kota">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
-                            <input type="text" name="provinsi" value="${user.provinsi || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Nama provinsi">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tahun Ajaran *</label>
-                            <input type="text" name="tahunAjaran" value="${user.tahunAjaran || ''}" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="2024/2025">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Semester</label>
-                            <select name="semester"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="1" ${user.semester === '1' ? 'selected' : ''}>Semester 1 (Ganjil)</option>
-                                <option value="2" ${user.semester === '2' ? 'selected' : ''}>Semester 2 (Genap)</option>
-                            </select>
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="8 digit NPSN" maxlength="8" pattern="[0-9]{8}"
+                                onchange="checkExistingSchool(this.value)">
+                            <p class="text-xs text-gray-500 mt-1">NPSN menghubungkan Anda dengan guru lain di sekolah yang sama</p>
                         </div>
                     </div>
                     
-                    <hr class="my-6">
-                    
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-user-tie text-purple-600 mr-2"></i>
-                        Data Kepala Sekolah
-                        <span class="ml-2 text-xs font-normal text-gray-500">(untuk tanda tangan dokumen)</span>
-                    </h3>
-                    
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle text-purple-500 mt-0.5 mr-3"></i>
-                            <p class="text-sm text-purple-700">
-                                Data kepala sekolah akan digunakan untuk tanda tangan pada dokumen ATP, KKTP, Prota, Promes, Modul Ajar, dan dokumen lainnya.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kepala Sekolah</label>
-                            <input type="text" name="kepalaSekolahNama" value="${user.kepalaSekolahNama || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Nama lengkap kepala sekolah">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">NIP Kepala Sekolah</label>
-                            <input type="text" name="kepalaSekolahNip" value="${user.kepalaSekolahNip || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="NIP kepala sekolah">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Pangkat/Golongan</label>
-                            <input type="text" name="kepalaSekolahPangkat" value="${user.kepalaSekolahPangkat || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Contoh: Pembina Tk.I / IV/b">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Gelar</label>
-                            <input type="text" name="kepalaSekolahGelar" value="${user.kepalaSekolahGelar || ''}"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Contoh: S.Pd., M.Pd.">
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end pt-6">
-                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                             <i class="fas fa-save mr-2"></i>
-                            Simpan Profil
+                            Simpan Data Pribadi
                         </button>
                     </div>
                 </form>
             </div>
             
-            <div class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-signature text-indigo-600 mr-2"></i>
-                    Preview Tanda Tangan Dokumen
-                </h3>
-                
-                <div class="border border-gray-200 rounded-lg p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center text-sm">
-                        <div>
-                            <p>Mengetahui,</p>
-                            <p>Kepala Sekolah</p>
-                            <div class="h-16 flex items-center justify-center">
-                                <span class="text-gray-300 text-xs">(tanda tangan)</span>
-                            </div>
-                            <p class="font-bold border-t border-black pt-1 inline-block min-w-[200px]">
-                                ${user.kepalaSekolahNama || '( ............................. )'}
-                            </p>
-                            <p>NIP. ${user.kepalaSekolahNip || '................................'}</p>
-                        </div>
-                        <div>
-                            <p>${user.kabupatenKota || '.....................'}, ..................... 20....</p>
-                            <p>Guru Mata Pelajaran</p>
-                            <div class="h-16 flex items-center justify-center">
-                                <span class="text-gray-300 text-xs">(tanda tangan)</span>
-                            </div>
-                            <p class="font-bold border-t border-black pt-1 inline-block min-w-[200px]">
-                                ${user.nama || '( ............................. )'}
-                            </p>
-                            <p>NIP. ${user.nip || '................................'}</p>
-                        </div>
+            <!-- School Info Alert -->
+            <div id="schoolInfoAlert" class="${hasExistingSchool ? '' : 'hidden'} bg-green-50 border border-green-200 rounded-xl p-4">
+                <div class="flex items-start">
+                    <i class="fas fa-check-circle text-green-500 text-xl mt-0.5 mr-3"></i>
+                    <div>
+                        <h4 class="font-semibold text-green-800">Data Sekolah Sudah Ada!</h4>
+                        <p class="text-sm text-green-700 mt-1">
+                            Data sekolah <strong>${school.schoolName || ''}</strong> sudah diisi oleh guru lain. 
+                            Anda tidak perlu mengisi ulang. Data akan otomatis tersinkronisasi.
+                        </p>
                     </div>
                 </div>
             </div>
             
-            <div id="sameSchoolTeachers" class="bg-white rounded-xl shadow-sm p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <!-- School Data Form -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <form id="schoolDataForm" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-school text-green-600 mr-2"></i>
+                            Data Sekolah
+                            <span class="ml-2 text-xs font-normal text-gray-500">(Shared dengan guru lain)</span>
+                        </h4>
+                        ${hasExistingSchool ? `
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <i class="fas fa-users mr-1"></i>
+                                Data Bersama
+                            </span>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Sekolah *</label>
+                            <input type="text" name="schoolName" value="${school.schoolName || ''}" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nama sekolah" ${hasExistingSchool ? '' : ''}>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Jenjang Pendidikan *</label>
+                            <select name="jenjang" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Pilih Jenjang</option>
+                                ${jenjangOptions}
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Sekolah</label>
+                            <input type="text" name="schoolAddress" value="${school.schoolAddress || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Alamat lengkap sekolah">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kabupaten/Kota</label>
+                            <input type="text" name="kabupatenKota" value="${school.kabupatenKota || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nama kabupaten/kota">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Provinsi</label>
+                            <input type="text" name="provinsi" value="${school.provinsi || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nama provinsi">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tahun Ajaran *</label>
+                            <input type="text" name="tahunAjaran" value="${school.tahunAjaran || ''}" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="2024/2025">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+                            <select name="semester"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="1" ${school.semester === '1' ? 'selected' : ''}>Semester 1 (Ganjil)</option>
+                                <option value="2" ${school.semester === '2' ? 'selected' : ''}>Semester 2 (Genap)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h4 class="font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-user-tie text-purple-600 mr-2"></i>
+                        Data Kepala Sekolah
+                        <span class="ml-2 text-xs font-normal text-gray-500">(untuk tanda tangan dokumen)</span>
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Kepala Sekolah</label>
+                            <input type="text" name="kepalaSekolahNama" value="${school.kepalaSekolahNama || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="Nama lengkap kepala sekolah">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">NIP Kepala Sekolah</label>
+                            <input type="text" name="kepalaSekolahNip" value="${school.kepalaSekolahNip || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                placeholder="NIP kepala sekolah">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            <i class="fas fa-save mr-2"></i>
+                            Simpan Data Sekolah
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Preview Tanda Tangan -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-signature text-indigo-600 mr-2"></i>
+                    Preview Tanda Tangan Dokumen
+                </h4>
+                <div class="border border-gray-200 rounded-lg p-6">
+                    ${generateTandaTangan({ guruLabel: 'Guru Mata Pelajaran' })}
+                </div>
+            </div>
+            
+            <!-- Teachers List -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-users text-teal-600 mr-2"></i>
                     Guru di Sekolah yang Sama
-                </h3>
+                </h4>
                 <div id="teachersList" class="space-y-2">
-                    <p class="text-gray-500 text-sm">Lengkapi NPSN untuk melihat guru lain di sekolah yang sama</p>
+                    <p class="text-gray-500 text-sm">Memuat data guru...</p>
                 </div>
             </div>
         </div>
@@ -626,50 +968,178 @@ function renderProfilPage() {
 }
 
 function initProfilPage() {
-    const form = document.getElementById('profilForm');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const userData = Object.fromEntries(formData.entries());
-        userData.updatedAt = new Date().toISOString();
-        
-        try {
-            // Save to localStorage
-            localStorage.setItem('guruSmartUser', JSON.stringify(userData));
-            APP_STATE.currentUser = userData;
-            
-            // Save to Firestore
-            await setDoc(doc(db, COLLECTIONS.USERS, userData.npsn + '_' + userData.email.replace(/[^a-zA-Z0-9]/g, '_')), {
-                ...userData,
-                createdAt: serverTimestamp()
-            });
-            
-            // Initialize default subjects if first time
-            if (userData.jenjang && APP_STATE.subjects.length === 0) {
-                await initializeDefaultSubjects(userData.npsn, userData.jenjang);
-            }
-            
-            updateUserDisplay();
-            await loadAllData();
-            showToast('Profil berhasil disimpan!', 'success');
-            
-            // Load teachers from same school
-            await loadSameSchoolTeachers(userData.npsn);
-            
-        } catch (error) {
-            console.error('Error saving profile:', error);
-            showToast('Gagal menyimpan profil', 'error');
-        }
-    });
+    // User profile form
+    const userForm = document.getElementById('userProfileForm');
+    if (userForm) {
+        userForm.addEventListener('submit', handleUserProfileSubmit);
+    }
     
-    // Load same school teachers if NPSN exists
+    // School data form
+    const schoolForm = document.getElementById('schoolDataForm');
+    if (schoolForm) {
+        schoolForm.addEventListener('submit', handleSchoolDataSubmit);
+    }
+    
+    // Load teachers
     if (APP_STATE.currentUser?.npsn) {
         loadSameSchoolTeachers(APP_STATE.currentUser.npsn);
     }
 }
 
+window.checkExistingSchool = async function(npsn) {
+    if (npsn.length !== 8) return;
+    
+    try {
+        const schoolDocRef = doc(db, COLLECTIONS.SCHOOLS, npsn);
+        const schoolDoc = await getDoc(schoolDocRef);
+        
+        const alert = document.getElementById('schoolInfoAlert');
+        
+        if (schoolDoc.exists()) {
+            const schoolData = schoolDoc.data();
+            APP_STATE.currentSchool = { id: npsn, ...schoolData };
+            
+            // Fill form with existing data
+            const form = document.getElementById('schoolDataForm');
+            if (form) {
+                form.querySelector('[name="schoolName"]').value = schoolData.schoolName || '';
+                form.querySelector('[name="jenjang"]').value = schoolData.jenjang || '';
+                form.querySelector('[name="schoolAddress"]').value = schoolData.schoolAddress || '';
+                form.querySelector('[name="kabupatenKota"]').value = schoolData.kabupatenKota || '';
+                form.querySelector('[name="provinsi"]').value = schoolData.provinsi || '';
+                form.querySelector('[name="tahunAjaran"]').value = schoolData.tahunAjaran || '';
+                form.querySelector('[name="semester"]').value = schoolData.semester || '1';
+                form.querySelector('[name="kepalaSekolahNama"]').value = schoolData.kepalaSekolahNama || '';
+                form.querySelector('[name="kepalaSekolahNip"]').value = schoolData.kepalaSekolahNip || '';
+            }
+            
+            if (alert) {
+                alert.classList.remove('hidden');
+                alert.querySelector('strong').textContent = schoolData.schoolName || npsn;
+            }
+            
+            showToast('Data sekolah ditemukan!', 'success');
+        } else {
+            APP_STATE.currentSchool = null;
+            if (alert) {
+                alert.classList.add('hidden');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking school:', error);
+    }
+};
+
+async function handleUserProfileSubmit(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const userData = {
+        nama: formData.get('nama'),
+        nip: formData.get('nip'),
+        phone: formData.get('phone'),
+        npsn: formData.get('npsn'),
+        updatedAt: serverTimestamp()
+    };
+    
+    try {
+        const userDocRef = doc(db, COLLECTIONS.USERS, APP_STATE.authUser.uid);
+        await updateDoc(userDocRef, userData);
+        
+        APP_STATE.currentUser = { ...APP_STATE.currentUser, ...userData };
+        APP_STATE.isProfileComplete = !!userData.npsn;
+        
+        updateUserDisplay();
+        
+        // Load school data if NPSN changed
+        if (userData.npsn) {
+            await loadSchoolData(userData.npsn);
+            await loadAllSharedData();
+        }
+        
+        showToast('Data pribadi berhasil disimpan!', 'success');
+        
+        // Reload teachers list
+        if (userData.npsn) {
+            loadSameSchoolTeachers(userData.npsn);
+        }
+        
+    } catch (error) {
+        console.error('Error saving user profile:', error);
+        showToast('Gagal menyimpan data pribadi', 'error');
+    }
+}
+
+async function handleSchoolDataSubmit(e) {
+    e.preventDefault();
+    
+    if (!APP_STATE.currentUser?.npsn) {
+        showToast('Simpan data pribadi dengan NPSN terlebih dahulu', 'warning');
+        return;
+    }
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    const schoolData = {
+        schoolName: formData.get('schoolName'),
+        jenjang: formData.get('jenjang'),
+        schoolAddress: formData.get('schoolAddress'),
+        kabupatenKota: formData.get('kabupatenKota'),
+        provinsi: formData.get('provinsi'),
+        tahunAjaran: formData.get('tahunAjaran'),
+        semester: formData.get('semester'),
+        kepalaSekolahNama: formData.get('kepalaSekolahNama'),
+        kepalaSekolahNip: formData.get('kepalaSekolahNip'),
+        updatedAt: serverTimestamp(),
+        updatedBy: APP_STATE.authUser.email
+    };
+    
+    try {
+        const npsn = APP_STATE.currentUser.npsn;
+        const schoolDocRef = doc(db, COLLECTIONS.SCHOOLS, npsn);
+        
+        // Check if exists
+        const schoolDoc = await getDoc(schoolDocRef);
+        if (schoolDoc.exists()) {
+            await updateDoc(schoolDocRef, schoolData);
+        } else {
+            await setDoc(schoolDocRef, {
+                ...schoolData,
+                npsn,
+                createdAt: serverTimestamp(),
+                createdBy: APP_STATE.authUser.email
+            });
+        }
+        
+        APP_STATE.currentSchool = { id: npsn, ...schoolData };
+        
+        // Initialize default subjects if new school
+        if (!schoolDoc.exists() && schoolData.jenjang) {
+            await initializeDefaultSubjects(npsn, schoolData.jenjang);
+            await loadAllSharedData();
+        }
+        
+        // Update school badge
+        const schoolNameBadge = document.getElementById('schoolNameBadge');
+        if (schoolNameBadge) {
+            schoolNameBadge.textContent = schoolData.schoolName;
+        }
+        
+        showToast('Data sekolah berhasil disimpan!', 'success');
+        
+    } catch (error) {
+        console.error('Error saving school data:', error);
+        showToast('Gagal menyimpan data sekolah', 'error');
+    }
+}
+
 async function loadSameSchoolTeachers(npsn) {
+    const container = document.getElementById('teachersList');
+    if (!container) return;
+    
     try {
         const teachersQuery = query(
             collection(db, COLLECTIONS.USERS),
@@ -677,52 +1147,27 @@ async function loadSameSchoolTeachers(npsn) {
         );
         const snapshot = await getDocs(teachersQuery);
         
-        const container = document.getElementById('teachersList');
         if (snapshot.empty) {
-            container.innerHTML = '<p class="text-gray-500 text-sm">Belum ada guru lain terdaftar di sekolah ini</p>';
+            container.innerHTML = '<p class="text-gray-500 text-sm">Belum ada guru lain terdaftar</p>';
             return;
         }
         
         const teachers = snapshot.docs.map(doc => doc.data());
         container.innerHTML = teachers.map(t => `
             <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
-                    ${t.nama?.charAt(0) || 'G'}
-                </div>
-                <div>
+                <img src="${t.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(t.nama || 'G')}" 
+                     alt="${t.nama}" class="w-10 h-10 rounded-full mr-3">
+                <div class="flex-1">
                     <p class="font-medium text-gray-800">${t.nama || 'Guru'}</p>
                     <p class="text-sm text-gray-500">${t.email || '-'}</p>
                 </div>
+                ${t.uid === APP_STATE.authUser?.uid ? '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Anda</span>' : ''}
             </div>
         `).join('');
         
     } catch (error) {
         console.error('Error loading teachers:', error);
-    }
-}
-
-async function initializeDefaultSubjects(npsn, jenjang) {
-    const subjects = DEFAULT_SUBJECTS[jenjang] || [];
-    const batch = writeBatch(db);
-    
-    for (const subject of subjects) {
-        const docRef = doc(collection(db, COLLECTIONS.SUBJECTS));
-        batch.set(docRef, {
-            ...subject,
-            npsn,
-            createdAt: serverTimestamp()
-        });
-    }
-    
-    await batch.commit();
-}
-
-function updateUserDisplay() {
-    const user = APP_STATE.currentUser;
-    if (user) {
-        document.getElementById('userInitial').textContent = user.nama?.charAt(0) || 'G';
-        document.getElementById('userName').textContent = user.nama || 'Guru';
-        document.getElementById('userSchool').textContent = user.schoolName || 'Sekolah';
+        container.innerHTML = '<p class="text-red-500 text-sm">Gagal memuat data guru</p>';
     }
 }
 
@@ -819,16 +1264,15 @@ function generateKopDokumen(options = {}) {
 }
 
 // =====================================================
-// MASTER CP (CAPAIAN PEMBELAJARAN) PAGE
+// MASTER CP PAGE - SHARED BY FASE
 // =====================================================
 function renderMasterCPPage() {
-    const user = APP_STATE.currentUser;
-    if (!user?.npsn) {
-        return renderNeedLoginMessage();
+    if (!APP_STATE.currentUser?.npsn) {
+        return renderNeedProfileMessage();
     }
     
-    const jenjang = user.jenjang || 'SD';
-    const kelasList = JENJANG[jenjang]?.kelas || [];
+    const school = APP_STATE.currentSchool || {};
+    const jenjang = school.jenjang || 'SD';
     const faseList = JENJANG[jenjang]?.fase || [];
     
     return `
@@ -841,7 +1285,9 @@ function renderMasterCPPage() {
                             <i class="fas fa-database text-blue-600 mr-2"></i>
                             Input Capaian Pembelajaran (CP)
                         </h3>
-                        <p class="text-sm text-gray-500 mt-1">Master data CP akan otomatis tersinkron ke ATP, KKTP, Modul Ajar, dan dokumen lainnya</p>
+                        <p class="text-sm text-gray-500 mt-1">
+                            CP di-share berdasarkan <strong>Fase</strong>. Satu CP berlaku untuk semua kelas dalam fase yang sama.
+                        </p>
                     </div>
                     <button onclick="showAddCPModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         <i class="fas fa-plus mr-2"></i>
@@ -850,35 +1296,51 @@ function renderMasterCPPage() {
                 </div>
             </div>
             
+            <!-- Info Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+                    <div>
+                        <h4 class="font-semibold text-blue-800">Tentang Fase dalam Kurikulum Merdeka</h4>
+                        <div class="text-sm text-blue-700 mt-1 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            ${Object.entries(JENJANG[jenjang]?.faseKelas || {}).map(([fase, kelas]) => `
+                                <div class="flex items-center">
+                                    <span class="px-2 py-0.5 bg-blue-200 text-blue-800 rounded mr-2 font-medium">Fase ${fase}</span>
+                                    <span>→ Kelas ${kelas.join(', ')}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Filter -->
             <div class="bg-white rounded-xl shadow-sm p-4">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran</label>
-                        <select id="filterSubject" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <select id="filterSubject" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             <option value="">Semua Mapel</option>
                             ${APP_STATE.subjects.map(s => `<option value="${s.kode}">${s.nama}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fase</label>
-                        <select id="filterFase" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <select id="filterFase" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             <option value="">Semua Fase</option>
                             ${faseList.map(f => `<option value="${f}">Fase ${f}</option>`).join('')}
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
-                        <select id="filterKelas" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Semua Kelas</option>
-                            ${kelasList.map(k => `<option value="${k}">Kelas ${k}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Elemen</label>
-                        <select id="filterElemen" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <select id="filterElemen" onchange="filterMasterData()" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                             <option value="">Semua Elemen</option>
                         </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="filterMasterData()" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
                     </div>
                 </div>
             </div>
@@ -889,16 +1351,16 @@ function renderMasterCPPage() {
                     <table class="w-full">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">No</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mata Pelajaran</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fase/Kelas</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Elemen</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Capaian Pembelajaran</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">No</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Mata Pelajaran</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fase</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Berlaku untuk Kelas</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Elemen</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Capaian Pembelajaran</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="cpTableBody" class="divide-y divide-gray-200">
-                            <!-- Data will be loaded here -->
                         </tbody>
                     </table>
                 </div>
@@ -906,32 +1368,10 @@ function renderMasterCPPage() {
                 <div id="cpEmptyState" class="hidden p-8 text-center">
                     <i class="fas fa-inbox text-gray-300 text-5xl mb-4"></i>
                     <p class="text-gray-500">Belum ada data Capaian Pembelajaran</p>
-                    <button onclick="showAddCPModal()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <button onclick="showAddCPModal()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                         <i class="fas fa-plus mr-2"></i>
                         Tambah CP Pertama
                     </button>
-                </div>
-            </div>
-            
-            <!-- Auto-Generate Info -->
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <div class="flex items-start">
-                    <i class="fas fa-magic text-blue-500 mt-1 mr-3"></i>
-                    <div>
-                        <h4 class="font-semibold text-blue-800">Auto-Generation</h4>
-                        <p class="text-sm text-blue-700 mt-1">
-                            Data CP yang Anda input akan otomatis digunakan untuk mengisi:
-                        </p>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">ATP</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">KKTP</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Prota</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Promes</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Modul Ajar</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">LKPD</span>
-                            <span class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs">Bank Soal</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -941,61 +1381,72 @@ function renderMasterCPPage() {
 function initMasterCPPage() {
     loadCPTable();
     
-    // Update elemen dropdown when subject changes
-    document.getElementById('filterSubject').addEventListener('change', function() {
+    document.getElementById('filterSubject')?.addEventListener('change', function() {
         updateElemenDropdown(this.value);
     });
 }
 
-async function loadCPTable() {
+function loadCPTable() {
     const tbody = document.getElementById('cpTableBody');
     const emptyState = document.getElementById('cpEmptyState');
     
+    if (!tbody) return;
+    
     const data = APP_STATE.masterData;
+    const school = APP_STATE.currentSchool || {};
+    const jenjang = school.jenjang || 'SD';
     
     if (data.length === 0) {
         tbody.innerHTML = '';
-        emptyState.classList.remove('hidden');
+        emptyState?.classList.remove('hidden');
         return;
     }
     
-    emptyState.classList.add('hidden');
+    emptyState?.classList.add('hidden');
     
-    tbody.innerHTML = data.map((cp, index) => `
-        <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm text-gray-600">${index + 1}</td>
-            <td class="px-4 py-3">
-                <span class="font-medium text-gray-800">${cp.subjectName || cp.subjectCode}</span>
-            </td>
-            <td class="px-4 py-3">
-                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Fase ${cp.fase}</span>
-                <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs ml-1">Kelas ${cp.kelas}</span>
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">${cp.elemen}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 max-w-md">
-                <div class="line-clamp-2">${cp.capaianPembelajaran}</div>
-            </td>
-            <td class="px-4 py-3 text-center">
-                <div class="flex items-center justify-center space-x-2">
-                    <button onclick="viewCP('${cp.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Lihat Detail">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button onclick="editCP('${cp.id}')" class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="deleteCP('${cp.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Hapus">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = data.map((cp, index) => {
+        // Get kelas list for this fase
+        const kelasList = getKelasFromFase(jenjang, cp.fase);
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3 text-sm text-gray-600">${index + 1}</td>
+                <td class="px-4 py-3">
+                    <span class="font-medium text-gray-800">${cp.subjectName || cp.subjectCode}</span>
+                </td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Fase ${cp.fase}</span>
+                </td>
+                <td class="px-4 py-3 text-sm">
+                    <div class="flex flex-wrap gap-1">
+                        ${kelasList.map(k => `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">${k}</span>`).join('')}
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">${cp.elemen}</td>
+                <td class="px-4 py-3 text-sm text-gray-700 max-w-md">
+                    <div class="line-clamp-2">${cp.capaianPembelajaran}</div>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    <div class="flex items-center justify-center space-x-1">
+                        <button onclick="viewCP('${cp.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Lihat">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button onclick="editCP('${cp.id}')" class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteCP('${cp.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 window.showAddCPModal = function(editData = null) {
-    const user = APP_STATE.currentUser;
-    const jenjang = user.jenjang || 'SD';
-    const kelasList = JENJANG[jenjang]?.kelas || [];
+    const school = APP_STATE.currentSchool || {};
+    const jenjang = school.jenjang || 'SD';
     const faseList = JENJANG[jenjang]?.fase || [];
     
     const isEdit = editData !== null;
@@ -1019,10 +1470,21 @@ window.showAddCPModal = function(editData = null) {
             <form id="cpForm" class="p-6 space-y-4">
                 <input type="hidden" name="id" value="${editData?.id || ''}">
                 
+                <!-- Info tentang Fase -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                    <div class="flex items-start">
+                        <i class="fas fa-lightbulb text-yellow-500 mt-0.5 mr-2"></i>
+                        <p class="text-yellow-800">
+                            CP yang Anda input akan berlaku untuk <strong>semua kelas dalam fase yang sama</strong>. 
+                            Tidak perlu input ulang untuk setiap kelas.
+                        </p>
+                    </div>
+                </div>
+                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran *</label>
-                        <select name="subjectCode" required onchange="updateElemenOptions(this.value)"
+                        <select name="subjectCode" required onchange="updateCPElemenOptions(this.value)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             <option value="">Pilih Mata Pelajaran</option>
                             ${APP_STATE.subjects.map(s => `
@@ -1034,28 +1496,20 @@ window.showAddCPModal = function(editData = null) {
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Elemen CP *</label>
-                        <select name="elemen" id="cpElemenSelect" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Pilih Elemen</option>
-                        </select>
-                    </div>
-                    
-                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fase *</label>
-                        <select name="fase" required
+                        <select name="fase" required onchange="showFaseKelas(this.value)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                             <option value="">Pilih Fase</option>
                             ${faseList.map(f => `<option value="${f}" ${editData?.fase === f ? 'selected' : ''}>Fase ${f}</option>`).join('')}
                         </select>
+                        <p id="faseKelasInfo" class="text-xs text-green-600 mt-1"></p>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelas *</label>
-                        <select name="kelas" required
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Elemen CP *</label>
+                        <select name="elemen" id="cpElemenSelect" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                            <option value="">Pilih Kelas</option>
-                            ${kelasList.map(k => `<option value="${k}" ${editData?.kelas === k ? 'selected' : ''}>Kelas ${k}</option>`).join('')}
+                            <option value="">Pilih Elemen</option>
                         </select>
                     </div>
                 </div>
@@ -1096,21 +1550,34 @@ window.showAddCPModal = function(editData = null) {
     
     document.getElementById('modalContainer').appendChild(modal);
     
-    // Initialize elemen options if editing
+    // Initialize
     if (editData?.subjectCode) {
-        updateElemenOptions(editData.subjectCode, editData.elemen);
+        updateCPElemenOptions(editData.subjectCode, editData.elemen);
+    }
+    if (editData?.fase) {
+        showFaseKelas(editData.fase);
     }
     
-    // Form submit handler
     document.getElementById('cpForm').addEventListener('submit', handleCPSubmit);
 };
 
-window.updateElemenOptions = function(subjectCode, selectedElemen = '') {
+window.showFaseKelas = function(fase) {
+    const school = APP_STATE.currentSchool || {};
+    const jenjang = school.jenjang || 'SD';
+    const kelasList = getKelasFromFase(jenjang, fase);
+    
+    const info = document.getElementById('faseKelasInfo');
+    if (info && kelasList.length > 0) {
+        info.textContent = `Berlaku untuk: Kelas ${kelasList.join(', ')}`;
+    }
+};
+
+window.updateCPElemenOptions = function(subjectCode, selectedElemen = '') {
     const subject = APP_STATE.subjects.find(s => s.kode === subjectCode);
     const elemenSelect = document.getElementById('cpElemenSelect');
     
-    if (!subject || !subject.elemen) {
-        elemenSelect.innerHTML = '<option value="">Pilih Elemen</option>';
+    if (!subject || !subject.elemen || !elemenSelect) {
+        if (elemenSelect) elemenSelect.innerHTML = '<option value="">Pilih Elemen</option>';
         return;
     }
     
@@ -1127,13 +1594,11 @@ async function handleCPSubmit(e) {
     const formData = new FormData(form);
     const id = formData.get('id');
     
-    // Get selected dimensi profil
     const dimensiProfil = [];
     form.querySelectorAll('input[name="dimensiProfil"]:checked').forEach(cb => {
         dimensiProfil.push(cb.value);
     });
     
-    // Get subject name
     const subjectSelect = form.querySelector('select[name="subjectCode"]');
     const subjectName = subjectSelect.options[subjectSelect.selectedIndex].dataset.name;
     
@@ -1142,27 +1607,26 @@ async function handleCPSubmit(e) {
         subjectName: subjectName,
         elemen: formData.get('elemen'),
         fase: formData.get('fase'),
-        kelas: formData.get('kelas'),
         capaianPembelajaran: formData.get('capaianPembelajaran'),
         dimensiProfil: dimensiProfil,
         npsn: APP_STATE.currentUser.npsn,
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
+        updatedBy: APP_STATE.authUser.email
     };
     
     try {
         if (id) {
-            // Update existing
             await updateDoc(doc(db, COLLECTIONS.MASTER_DATA, id), cpData);
             showToast('CP berhasil diperbarui!', 'success');
         } else {
-            // Add new
             cpData.createdAt = serverTimestamp();
+            cpData.createdBy = APP_STATE.authUser.email;
             await addDoc(collection(db, COLLECTIONS.MASTER_DATA), cpData);
             showToast('CP berhasil ditambahkan!', 'success');
         }
         
         closeModal('cpModal');
-        await loadAllData();
+        await loadAllSharedData();
         loadCPTable();
         
     } catch (error) {
@@ -1170,162 +1634,6 @@ async function handleCPSubmit(e) {
         showToast('Gagal menyimpan CP', 'error');
     }
 }
-
-window.editCP = async function(id) {
-    const cp = APP_STATE.masterData.find(c => c.id === id);
-    if (cp) {
-        showAddCPModal(cp);
-    }
-};
-
-window.viewCP = function(id) {
-    const cp = APP_STATE.masterData.find(c => c.id === id);
-    if (!cp) return;
-    
-    const modal = document.createElement('div');
-    modal.id = 'viewCPModal';
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
-    modal.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-enter">
-            <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800">
-                    <i class="fas fa-eye text-blue-600 mr-2"></i>
-                    Detail Capaian Pembelajaran
-                </h3>
-                <button onclick="closeModal('viewCPModal')" class="p-2 hover:bg-gray-100 rounded-lg">
-                    <i class="fas fa-times text-gray-500"></i>
-                </button>
-            </div>
-            
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-sm text-gray-500">Mata Pelajaran</label>
-                        <p class="font-medium text-gray-800">${cp.subjectName || cp.subjectCode}</p>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-500">Elemen</label>
-                        <p class="font-medium text-gray-800">${cp.elemen}</p>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-500">Fase</label>
-                        <p class="font-medium text-gray-800">Fase ${cp.fase}</p>
-                    </div>
-                    <div>
-                        <label class="text-sm text-gray-500">Kelas</label>
-                        <p class="font-medium text-gray-800">Kelas ${cp.kelas}</p>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="text-sm text-gray-500">Capaian Pembelajaran</label>
-                    <p class="mt-1 p-3 bg-gray-50 rounded-lg text-gray-700">${cp.capaianPembelajaran}</p>
-                </div>
-                
-                <div>
-                    <label class="text-sm text-gray-500">Dimensi Profil Lulusan</label>
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        ${(cp.dimensiProfil || []).map(id => {
-                            const dim = DIMENSI_PROFIL_LULUSAN.find(d => d.id === id);
-                            return dim ? `<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">${dim.nama}</span>` : '';
-                        }).join('')}
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('modalContainer').appendChild(modal);
-};
-
-window.deleteCP = async function(id) {
-    if (!confirm('Apakah Anda yakin ingin menghapus CP ini?')) return;
-    
-    try {
-        await deleteDoc(doc(db, COLLECTIONS.MASTER_DATA, id));
-        showToast('CP berhasil dihapus!', 'success');
-        await loadAllData();
-        loadCPTable();
-    } catch (error) {
-        console.error('Error deleting CP:', error);
-        showToast('Gagal menghapus CP', 'error');
-    }
-};
-
-window.filterMasterData = function() {
-    const subject = document.getElementById('filterSubject').value;
-    const fase = document.getElementById('filterFase').value;
-    const kelas = document.getElementById('filterKelas').value;
-    const elemen = document.getElementById('filterElemen').value;
-    
-    let filtered = [...APP_STATE.masterData];
-    
-    if (subject) filtered = filtered.filter(cp => cp.subjectCode === subject);
-    if (fase) filtered = filtered.filter(cp => cp.fase === fase);
-    if (kelas) filtered = filtered.filter(cp => cp.kelas === kelas);
-    if (elemen) filtered = filtered.filter(cp => cp.elemen === elemen);
-    
-    // Re-render table with filtered data
-    const tbody = document.getElementById('cpTableBody');
-    const emptyState = document.getElementById('cpEmptyState');
-    
-    if (filtered.length === 0) {
-        tbody.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-    }
-    
-    emptyState.classList.add('hidden');
-    tbody.innerHTML = filtered.map((cp, index) => `
-        <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm text-gray-600">${index + 1}</td>
-            <td class="px-4 py-3">
-                <span class="font-medium text-gray-800">${cp.subjectName || cp.subjectCode}</span>
-            </td>
-            <td class="px-4 py-3">
-                <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Fase ${cp.fase}</span>
-                <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs ml-1">Kelas ${cp.kelas}</span>
-            </td>
-            <td class="px-4 py-3 text-sm text-gray-600">${cp.elemen}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 max-w-md">
-                <div class="line-clamp-2">${cp.capaianPembelajaran}</div>
-            </td>
-            <td class="px-4 py-3 text-center">
-                <div class="flex items-center justify-center space-x-2">
-                    <button onclick="viewCP('${cp.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button onclick="editCP('${cp.id}')" class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button onclick="deleteCP('${cp.id}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        </tr>
-    `).join('');
-};
-
-function updateElemenDropdown(subjectCode) {
-    const subject = APP_STATE.subjects.find(s => s.kode === subjectCode);
-    const elemenSelect = document.getElementById('filterElemen');
-    
-    if (!subject || !subject.elemen) {
-        elemenSelect.innerHTML = '<option value="">Semua Elemen</option>';
-        return;
-    }
-    
-    elemenSelect.innerHTML = `
-        <option value="">Semua Elemen</option>
-        ${subject.elemen.map(e => `<option value="${e}">${e}</option>`).join('')}
-    `;
-}
-
-window.closeModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) modal.remove();
-};
 
 // =====================================================
 // MATA PELAJARAN PAGE

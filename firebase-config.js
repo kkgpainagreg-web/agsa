@@ -21,6 +21,14 @@ import {
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyCyRKvngA1EqlQmgxgxU4465qgRw8TdT08",
     authDomain: "si-gumart.firebaseapp.com",
@@ -33,10 +41,14 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Export semua yang diperlukan
 export { 
     db, 
+    auth,
+    googleProvider,
     collection, 
     doc, 
     addDoc, 
@@ -50,27 +62,29 @@ export {
     orderBy,
     onSnapshot,
     serverTimestamp,
-    writeBatch
+    writeBatch,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged
 };
 
 // =====================================================
 // COLLECTION REFERENCES
 // =====================================================
 export const COLLECTIONS = {
-    USERS: 'users',
-    SCHOOLS: 'schools',
-    MASTER_DATA: 'master_data',
-    SUBJECTS: 'subjects',
-    CP_ELEMENTS: 'cp_elements',
+    USERS: 'users',                    // Data profil guru (per user)
+    SCHOOLS: 'schools',                // Data sekolah (shared per NPSN)
+    MASTER_DATA: 'master_data',        // CP (shared per NPSN + Fase)
+    SUBJECTS: 'subjects',              // Mapel (shared per NPSN)
     ATP: 'atp',
     KKTP: 'kktp',
-    CALENDAR: 'calendar_events',
-    SCHEDULES: 'schedules',
+    CALENDAR: 'calendar_events',       // Shared per NPSN
+    SCHEDULES: 'schedules',            // Shared per NPSN
     PROTA: 'prota',
     PROMES: 'promes',
-    MODUL_AJAR: 'modul_ajar',
-    LKPD: 'lkpd',
-    BANK_SOAL: 'bank_soal'
+    MODUL_AJAR: 'modul_ajar',          // Per user
+    LKPD: 'lkpd',                      // Per user
+    BANK_SOAL: 'bank_soal'             // Per user
 };
 
 // =====================================================
@@ -160,30 +174,66 @@ export const DIMENSI_PROFIL_LULUSAN = [
 ];
 
 // =====================================================
-// JENJANG PENDIDIKAN
+// JENJANG PENDIDIKAN & FASE
 // =====================================================
 export const JENJANG = {
     SD: {
         nama: 'Sekolah Dasar',
         kelas: ['I', 'II', 'III', 'IV', 'V', 'VI'],
-        fase: ['A', 'B', 'C']
+        fase: ['A', 'B', 'C'],
+        faseKelas: {
+            'A': ['I', 'II'],
+            'B': ['III', 'IV'],
+            'C': ['V', 'VI']
+        }
     },
     SMP: {
         nama: 'Sekolah Menengah Pertama',
         kelas: ['VII', 'VIII', 'IX'],
-        fase: ['D']
+        fase: ['D'],
+        faseKelas: {
+            'D': ['VII', 'VIII', 'IX']
+        }
     },
     SMA: {
         nama: 'Sekolah Menengah Atas',
         kelas: ['X', 'XI', 'XII'],
-        fase: ['E', 'F']
+        fase: ['E', 'F'],
+        faseKelas: {
+            'E': ['X'],
+            'F': ['XI', 'XII']
+        }
     },
     SMK: {
         nama: 'Sekolah Menengah Kejuruan',
         kelas: ['X', 'XI', 'XII', 'XIII'],
-        fase: ['E', 'F']
+        fase: ['E', 'F'],
+        faseKelas: {
+            'E': ['X'],
+            'F': ['XI', 'XII', 'XIII']
+        }
     }
 };
+
+// Helper: Get fase from kelas
+export function getFaseFromKelas(jenjang, kelas) {
+    const jenjangData = JENJANG[jenjang];
+    if (!jenjangData) return null;
+    
+    for (const [fase, kelasList] of Object.entries(jenjangData.faseKelas)) {
+        if (kelasList.includes(kelas)) {
+            return fase;
+        }
+    }
+    return null;
+}
+
+// Helper: Get kelas list from fase
+export function getKelasFromFase(jenjang, fase) {
+    const jenjangData = JENJANG[jenjang];
+    if (!jenjangData) return [];
+    return jenjangData.faseKelas[fase] || [];
+}
 
 // =====================================================
 // DEFAULT SUBJECTS PER JENJANG
@@ -228,3 +278,5 @@ export const DEFAULT_SUBJECTS = {
         { kode: 'INFO', nama: 'Informatika', elemen: ['Berpikir Komputasional', 'TIK', 'Sistem Komputer', 'Pemrograman'] }
     ]
 };
+
+DEFAULT_SUBJECTS.SMK = DEFAULT_SUBJECTS.SMA;
