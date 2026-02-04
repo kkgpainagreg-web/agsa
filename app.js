@@ -405,7 +405,7 @@ function renderDashboard() {
 }
 
 // =====================================================
-// PROFIL PAGE
+// PROFIL PAGE (UPDATED - dengan Kepala Sekolah)
 // =====================================================
 function renderProfilPage() {
     const user = APP_STATE.currentUser || {};
@@ -493,6 +493,20 @@ function renderProfilPage() {
                         </div>
                         
                         <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Kabupaten/Kota</label>
+                            <input type="text" name="kabupatenKota" value="${user.kabupatenKota || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Nama kabupaten/kota">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Provinsi</label>
+                            <input type="text" name="provinsi" value="${user.provinsi || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Nama provinsi">
+                        </div>
+                        
+                        <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Tahun Ajaran *</label>
                             <input type="text" name="tahunAjaran" value="${user.tahunAjaran || ''}" required
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -509,8 +523,56 @@ function renderProfilPage() {
                         </div>
                     </div>
                     
-                    <div class="flex justify-end pt-4">
-                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <hr class="my-6">
+                    
+                    <!-- DATA KEPALA SEKOLAH -->
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-user-tie text-purple-600 mr-2"></i>
+                        Data Kepala Sekolah
+                        <span class="ml-2 text-xs font-normal text-gray-500">(untuk tanda tangan dokumen)</span>
+                    </h3>
+                    
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-purple-500 mt-0.5 mr-3"></i>
+                            <p class="text-sm text-purple-700">
+                                Data kepala sekolah akan digunakan untuk tanda tangan pada dokumen ATP, KKTP, Prota, Promes, Modul Ajar, dan dokumen lainnya.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kepala Sekolah *</label>
+                            <input type="text" name="kepalaSekolahNama" value="${user.kepalaSekolahNama || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Nama lengkap kepala sekolah">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">NIP Kepala Sekolah</label>
+                            <input type="text" name="kepalaSekolahNip" value="${user.kepalaSekolahNip || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="NIP kepala sekolah">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pangkat/Golongan</label>
+                            <input type="text" name="kepalaSekolahPangkat" value="${user.kepalaSekolahPangkat || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Contoh: Pembina Tk.I / IV/b">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gelar</label>
+                            <input type="text" name="kepalaSekolahGelar" value="${user.kepalaSekolahGelar || ''}"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Contoh: S.Pd., M.Pd.">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end pt-6">
+                        <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                             <i class="fas fa-save mr-2"></i>
                             Simpan Profil
                         </button>
@@ -518,10 +580,45 @@ function renderProfilPage() {
                 </form>
             </div>
             
+            <!-- Preview Tanda Tangan -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-signature text-indigo-600 mr-2"></i>
+                    Preview Tanda Tangan Dokumen
+                </h3>
+                
+                <div class="border border-gray-200 rounded-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center text-sm">
+                        <div>
+                            <p>Mengetahui,</p>
+                            <p>Kepala Sekolah</p>
+                            <div class="h-16 flex items-center justify-center">
+                                <span class="text-gray-300 text-xs">(tanda tangan)</span>
+                            </div>
+                            <p class="font-bold border-t border-black pt-1 inline-block min-w-[200px]">
+                                ${user.kepalaSekolahNama || '( ............................. )'}
+                            </p>
+                            <p>NIP. ${user.kepalaSekolahNip || '................................'}</p>
+                        </div>
+                        <div>
+                            <p>${user.kabupatenKota || '.....................'}, ..................... 20....</p>
+                            <p>Guru Mata Pelajaran</p>
+                            <div class="h-16 flex items-center justify-center">
+                                <span class="text-gray-300 text-xs">(tanda tangan)</span>
+                            </div>
+                            <p class="font-bold border-t border-black pt-1 inline-block min-w-[200px]">
+                                ${user.nama || '( ............................. )'}
+                            </p>
+                            <p>NIP. ${user.nip || '................................'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Guru di Sekolah yang Sama -->
             <div id="sameSchoolTeachers" class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-users text-purple-600 mr-2"></i>
+                    <i class="fas fa-users text-teal-600 mr-2"></i>
                     Guru di Sekolah yang Sama
                 </h3>
                 <div id="teachersList" class="space-y-2">
@@ -530,107 +627,6 @@ function renderProfilPage() {
             </div>
         </div>
     `;
-}
-
-function initProfilPage() {
-    const form = document.getElementById('profilForm');
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(form);
-        const userData = Object.fromEntries(formData.entries());
-        userData.updatedAt = new Date().toISOString();
-        
-        try {
-            // Save to localStorage
-            localStorage.setItem('guruSmartUser', JSON.stringify(userData));
-            APP_STATE.currentUser = userData;
-            
-            // Save to Firestore
-            await setDoc(doc(db, COLLECTIONS.USERS, userData.npsn + '_' + userData.email.replace(/[^a-zA-Z0-9]/g, '_')), {
-                ...userData,
-                createdAt: serverTimestamp()
-            });
-            
-            // Initialize default subjects if first time
-            if (userData.jenjang && APP_STATE.subjects.length === 0) {
-                await initializeDefaultSubjects(userData.npsn, userData.jenjang);
-            }
-            
-            updateUserDisplay();
-            await loadAllData();
-            showToast('Profil berhasil disimpan!', 'success');
-            
-            // Load teachers from same school
-            await loadSameSchoolTeachers(userData.npsn);
-            
-        } catch (error) {
-            console.error('Error saving profile:', error);
-            showToast('Gagal menyimpan profil', 'error');
-        }
-    });
-    
-    // Load same school teachers if NPSN exists
-    if (APP_STATE.currentUser?.npsn) {
-        loadSameSchoolTeachers(APP_STATE.currentUser.npsn);
-    }
-}
-
-async function loadSameSchoolTeachers(npsn) {
-    try {
-        const teachersQuery = query(
-            collection(db, COLLECTIONS.USERS),
-            where('npsn', '==', npsn)
-        );
-        const snapshot = await getDocs(teachersQuery);
-        
-        const container = document.getElementById('teachersList');
-        if (snapshot.empty) {
-            container.innerHTML = '<p class="text-gray-500 text-sm">Belum ada guru lain terdaftar di sekolah ini</p>';
-            return;
-        }
-        
-        const teachers = snapshot.docs.map(doc => doc.data());
-        container.innerHTML = teachers.map(t => `
-            <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold mr-3">
-                    ${t.nama?.charAt(0) || 'G'}
-                </div>
-                <div>
-                    <p class="font-medium text-gray-800">${t.nama || 'Guru'}</p>
-                    <p class="text-sm text-gray-500">${t.email || '-'}</p>
-                </div>
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Error loading teachers:', error);
-    }
-}
-
-async function initializeDefaultSubjects(npsn, jenjang) {
-    const subjects = DEFAULT_SUBJECTS[jenjang] || [];
-    const batch = writeBatch(db);
-    
-    for (const subject of subjects) {
-        const docRef = doc(collection(db, COLLECTIONS.SUBJECTS));
-        batch.set(docRef, {
-            ...subject,
-            npsn,
-            createdAt: serverTimestamp()
-        });
-    }
-    
-    await batch.commit();
-}
-
-function updateUserDisplay() {
-    const user = APP_STATE.currentUser;
-    if (user) {
-        document.getElementById('userInitial').textContent = user.nama?.charAt(0) || 'G';
-        document.getElementById('userName').textContent = user.nama || 'Guru';
-        document.getElementById('userSchool').textContent = user.schoolName || 'Sekolah';
-    }
 }
 
 // =====================================================
@@ -1579,23 +1575,86 @@ window.loadATPData = function() {
     
     preview.innerHTML = `
         <!-- Header Dokumen -->
-        <div class="border-b-2 border-black pb-4 mb-6">
-            <div class="text-center">
-                <h2 class="text-xl font-bold uppercase">ALUR TUJUAN PEMBELAJARAN (ATP)</h2>
-                <h3 class="text-lg font-semibold mt-2">${subjectInfo?.nama || subject}</h3>
+        ${generateKopDokumen({
+            title: 'ALUR TUJUAN PEMBELAJARAN (ATP)',
+            subtitle: subjectInfo?.nama || subject
+        })}
+        
+        <!-- Identitas -->
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Satuan Pendidikan</td><td class="py-1">: ${user.schoolName}</td></tr>
+                    <tr><td class="py-1">Mata Pelajaran</td><td class="py-1">: ${subjectInfo?.nama || subject}</td></tr>
+                    <tr><td class="py-1">Kelas / Fase</td><td class="py-1">: ${kelas} / ${cpData[0]?.fase || '-'}</td></tr>
+                </table>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
-                <div>
-                    <p><strong>Satuan Pendidikan:</strong> ${user.schoolName}</p>
-                    <p><strong>Kelas/Fase:</strong> ${kelas} / ${cpData[0]?.fase || '-'}</p>
-                </div>
-                <div>
-                    <p><strong>Tahun Pelajaran:</strong> ${user.tahunAjaran}</p>
-                    <p><strong>Guru Pengampu:</strong> ${user.nama}</p>
-                </div>
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Tahun Pelajaran</td><td class="py-1">: ${user.tahunAjaran}</td></tr>
+                    <tr><td class="py-1">Semester</td><td class="py-1">: ${user.semester === '1' ? 'Ganjil' : 'Genap'}</td></tr>
+                    <tr><td class="py-1">Guru Pengampu</td><td class="py-1">: ${user.nama}</td></tr>
+                </table>
             </div>
         </div>
+        
+        <!-- Tabel ATP -->
+        ${Object.entries(groupedByElemen).map(([elemen, cps], elemenIndex) => `
+            <div class="mb-6 ${elemenIndex > 0 ? 'page-break' : ''}">
+                <h4 class="font-bold text-gray-800 mb-3 bg-purple-100 p-2 rounded">
+                    Elemen: ${elemen}
+                </h4>
+                
+                <table class="w-full border-collapse border border-gray-400 text-sm">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border border-gray-400 p-2 w-12">No</th>
+                            <th class="border border-gray-400 p-2">Capaian Pembelajaran</th>
+                            <th class="border border-gray-400 p-2">Tujuan Pembelajaran</th>
+                            <th class="border border-gray-400 p-2 w-24">Minggu ke-</th>
+                            <th class="border border-gray-400 p-2 w-20">JP</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${cps.map((cp, index) => `
+                            <tr>
+                                <td class="border border-gray-400 p-2 text-center">${index + 1}</td>
+                                <td class="border border-gray-400 p-2">${cp.capaianPembelajaran}</td>
+                                <td class="border border-gray-400 p-2">
+                                    <ul class="list-disc list-inside text-sm">
+                                        <li>Memahami konsep ${elemen.toLowerCase()}</li>
+                                        <li>Menganalisis ${elemen.toLowerCase()} dalam konteks kehidupan</li>
+                                        <li>Menerapkan ${elemen.toLowerCase()} dalam kehidupan sehari-hari</li>
+                                    </ul>
+                                </td>
+                                <td class="border border-gray-400 p-2 text-center">${(index * 2) + 1}-${(index * 2) + 2}</td>
+                                <td class="border border-gray-400 p-2 text-center">4</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('')}
+        
+        <!-- Dimensi Profil Lulusan -->
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h4 class="font-bold text-gray-800 mb-3">Dimensi Profil Lulusan yang Dikembangkan:</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                ${DIMENSI_PROFIL_LULUSAN.map(dim => `
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                        ${dim.nama}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        
+        <!-- Tanda Tangan -->
+        ${generateTandaTangan({
+            guruLabel: 'Guru Mata Pelajaran'
+        })}
+    `;
+};
         
         <!-- Tabel ATP -->
         ${Object.entries(groupedByElemen).map(([elemen, cps], elemenIndex) => `
@@ -1821,21 +1880,26 @@ window.loadKKTPData = function() {
     
     preview.innerHTML = `
         <!-- Header Dokumen -->
-        <div class="border-b-2 border-black pb-4 mb-6">
-            <div class="text-center">
-                <h2 class="text-xl font-bold uppercase">KRITERIA KETERCAPAIAN TUJUAN PEMBELAJARAN (KKTP)</h2>
-                <h3 class="text-lg font-semibold mt-2">${subjectInfo?.nama || subject}</h3>
+        ${generateKopDokumen({
+            title: 'KRITERIA KETERCAPAIAN TUJUAN PEMBELAJARAN (KKTP)',
+            subtitle: subjectInfo?.nama || subject
+        })}
+        
+        <!-- Identitas -->
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Satuan Pendidikan</td><td class="py-1">: ${user.schoolName}</td></tr>
+                    <tr><td class="py-1">Mata Pelajaran</td><td class="py-1">: ${subjectInfo?.nama || subject}</td></tr>
+                    <tr><td class="py-1">Kelas / Fase</td><td class="py-1">: ${kelas} / ${cpData[0]?.fase || '-'}</td></tr>
+                </table>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
-                <div>
-                    <p><strong>Satuan Pendidikan:</strong> ${user.schoolName}</p>
-                    <p><strong>Kelas/Fase:</strong> ${kelas} / ${cpData[0]?.fase || '-'}</p>
-                </div>
-                <div>
-                    <p><strong>Tahun Pelajaran:</strong> ${user.tahunAjaran}</p>
-                    <p><strong>Guru Pengampu:</strong> ${user.nama}</p>
-                </div>
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Tahun Pelajaran</td><td class="py-1">: ${user.tahunAjaran}</td></tr>
+                    <tr><td class="py-1">Semester</td><td class="py-1">: ${user.semester === '1' ? 'Ganjil' : 'Genap'}</td></tr>
+                    <tr><td class="py-1">Guru Pengampu</td><td class="py-1">: ${user.nama}</td></tr>
+                </table>
             </div>
         </div>
         
@@ -1849,10 +1913,10 @@ window.loadKKTPData = function() {
                     <th class="border border-gray-400 p-2" rowspan="2">Teknik Penilaian</th>
                 </tr>
                 <tr class="bg-gray-100">
-                    <th class="border border-gray-400 p-2 w-16">Belum Berkembang</th>
-                    <th class="border border-gray-400 p-2 w-16">Mulai Berkembang</th>
-                    <th class="border border-gray-400 p-2 w-16">Berkembang Sesuai Harapan</th>
-                    <th class="border border-gray-400 p-2 w-16">Sangat Berkembang</th>
+                    <th class="border border-gray-400 p-2 w-16">BB</th>
+                    <th class="border border-gray-400 p-2 w-16">MB</th>
+                    <th class="border border-gray-400 p-2 w-16">BSH</th>
+                    <th class="border border-gray-400 p-2 w-16">SB</th>
                 </tr>
             </thead>
             <tbody>
@@ -1903,22 +1967,9 @@ window.loadKKTPData = function() {
         </div>
         
         <!-- Tanda Tangan -->
-        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-            <div>
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
-                <p>NIP. ................................</p>
-            </div>
-            <div>
-                <p>..................., ..................... 20....</p>
-                <p>Guru Mata Pelajaran</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
-                <p>NIP. ${user.nip || '................................'}</p>
-            </div>
-        </div>
+        ${generateTandaTangan({
+            guruLabel: 'Guru Mata Pelajaran'
+        })}
     `;
 };
 
@@ -3485,27 +3536,27 @@ window.loadProtaData = function() {
     const semester2CPs = cpData.slice(cpPerSemester);
     
     preview.innerHTML = `
-        <!-- Kop Dokumen -->
-        <div class="border-b-2 border-black pb-4 mb-6">
-            <div class="text-center">
-                <h2 class="text-xl font-bold uppercase">PROGRAM TAHUNAN (PROTA)</h2>
+        <!-- Header Dokumen -->
+        ${generateKopDokumen({
+            title: 'PROGRAM TAHUNAN (PROTA)',
+            subtitle: subjectInfo?.nama || subject
+        })}
+        
+        <!-- Identitas -->
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Satuan Pendidikan</td><td class="py-1">: ${user.schoolName}</td></tr>
+                    <tr><td class="py-1">Mata Pelajaran</td><td class="py-1">: ${subjectInfo?.nama || subject}</td></tr>
+                    <tr><td class="py-1">Kelas / Semester</td><td class="py-1">: ${kelas} / Ganjil & Genap</td></tr>
+                </table>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
-                <div>
-                    <table class="w-full">
-                        <tr><td class="w-36">Satuan Pendidikan</td><td>: ${user.schoolName}</td></tr>
-                        <tr><td>Mata Pelajaran</td><td>: ${subjectInfo?.nama || subject}</td></tr>
-                        <tr><td>Kelas / Semester</td><td>: ${kelas} / Ganjil & Genap</td></tr>
-                    </table>
-                </div>
-                <div>
-                    <table class="w-full">
-                        <tr><td class="w-36">Tahun Pelajaran</td><td>: ${user.tahunAjaran}</td></tr>
-                        <tr><td>Fase</td><td>: ${cpData[0]?.fase || '-'}</td></tr>
-                        <tr><td>Guru Pengampu</td><td>: ${user.nama}</td></tr>
-                    </table>
-                </div>
+            <div>
+                <table class="w-full">
+                    <tr><td class="py-1 w-40">Tahun Pelajaran</td><td class="py-1">: ${user.tahunAjaran}</td></tr>
+                    <tr><td class="py-1">Fase</td><td class="py-1">: ${cpData[0]?.fase || '-'}</td></tr>
+                    <tr><td class="py-1">Guru Pengampu</td><td class="py-1">: ${user.nama}</td></tr>
+                </table>
             </div>
         </div>
         
@@ -3580,22 +3631,9 @@ window.loadProtaData = function() {
         </div>
         
         <!-- Tanda Tangan -->
-        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-            <div>
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
-                <p>NIP. ................................</p>
-            </div>
-            <div>
-                <p>..................., ..................... 20....</p>
-                <p>Guru Mata Pelajaran</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
-                <p>NIP. ${user.nip || '................................'}</p>
-            </div>
-        </div>
+        ${generateTandaTangan({
+            guruLabel: 'Guru Mata Pelajaran'
+        })}
     `;
 };
 
@@ -3809,6 +3847,8 @@ window.loadPromesData = function() {
             </table>
         </div>
         
+       // Di akhir fungsi loadPromesData, ganti bagian tanda tangan dengan:
+        
         <!-- Keterangan -->
         <div class="mt-4 p-4 bg-gray-50 rounded-lg text-sm">
             <h4 class="font-bold mb-2">Keterangan:</h4>
@@ -3820,22 +3860,9 @@ window.loadPromesData = function() {
         </div>
         
         <!-- Tanda Tangan -->
-        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-            <div>
-                <p>Mengetahui,</p>
-                <p>Kepala Sekolah</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
-                <p>NIP. ................................</p>
-            </div>
-            <div>
-                <p>..................., ..................... 20....</p>
-                <p>Guru Mata Pelajaran</p>
-                <div class="h-20"></div>
-                <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
-                <p>NIP. ${user.nip || '................................'}</p>
-            </div>
-        </div>
+        ${generateTandaTangan({
+            guruLabel: 'Guru Mata Pelajaran'
+        })}
     `;
 };
 
@@ -4965,24 +4992,11 @@ window.viewModulAjar = function(id) {
                         </div>
                     </div>
                 </div>
-                
+                                      
                 <!-- Tanda Tangan -->
-                <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
-                    <div>
-                        <p>Mengetahui,</p>
-                        <p>Kepala Sekolah</p>
-                        <div class="h-20"></div>
-                        <p class="font-bold border-t border-black pt-1 inline-block">(...........................)</p>
-                        <p>NIP. ................................</p>
-                    </div>
-                    <div>
-                        <p>..................., ..................... 20....</p>
-                        <p>Guru Mata Pelajaran</p>
-                        <div class="h-20"></div>
-                        <p class="font-bold border-t border-black pt-1 inline-block">${user.nama}</p>
-                        <p>NIP. ${user.nip || '................................'}</p>
-                    </div>
-                </div>
+                ${generateTandaTangan({
+                    guruLabel: 'Guru Mata Pelajaran'
+                })}
             </div>
         </div>
     `;
@@ -5531,9 +5545,11 @@ window.viewLKPD = function(id) {
                     `).join('')}
                 </div>
                 
-                <!-- Footer -->
+                                <!-- Footer -->
                 <div class="text-center text-sm text-gray-500 border-t pt-4 mt-8">
-                    <p>${user.schoolName} | ${lkpd.subjectName || lkpd.subjectCode} | Kelas ${lkpd.kelas}</p>
+                    <p>${user.schoolName}</p>
+                    <p>${lkpd.subjectName || lkpd.subjectCode} | Kelas ${lkpd.kelas}</p>
+                    <p class="mt-2">Guru Pengampu: ${user.nama}</p>
                 </div>
             </div>
         </div>
@@ -5610,6 +5626,77 @@ window.exportLKPDToPDF = function(id) {
     doc.save(`LKPD_${lkpd.judul.replace(/\s+/g, '_')}.pdf`);
     showToast('PDF berhasil diunduh!', 'success');
 };
+
+// =====================================================
+// HELPER: GENERATE TANDA TANGAN DOKUMEN
+// =====================================================
+function generateTandaTangan(options = {}) {
+    const user = APP_STATE.currentUser || {};
+    const {
+        showDate = true,
+        dateLabel = '.....................',
+        monthYear = '..................... 20....',
+        guruLabel = 'Guru Mata Pelajaran',
+        kepalaLabel = 'Kepala Sekolah'
+    } = options;
+    
+    const lokasi = user.kabupatenKota || dateLabel;
+    const tanggal = showDate ? `${lokasi}, ${monthYear}` : '';
+    
+    return `
+        <div class="mt-8 grid grid-cols-2 gap-8 text-center text-sm">
+            <div>
+                <p>Mengetahui,</p>
+                <p>${kepalaLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${user.kepalaSekolahNama || '( ............................. )'}
+                </p>
+                <p>NIP. ${user.kepalaSekolahNip || '................................'}</p>
+            </div>
+            <div>
+                <p>${tanggal}</p>
+                <p>${guruLabel}</p>
+                <div class="h-20"></div>
+                <p class="font-bold border-t border-black pt-1 inline-block min-w-[180px]">
+                    ${user.nama || '( ............................. )'}
+                </p>
+                <p>NIP. ${user.nip || '................................'}</p>
+            </div>
+        </div>
+    `;
+}
+
+// Helper untuk header dokumen
+function generateKopDokumen(options = {}) {
+    const user = APP_STATE.currentUser || {};
+    const {
+        title = 'DOKUMEN',
+        subtitle = '',
+        showLogo = false
+    } = options;
+    
+    return `
+        <div class="border-b-2 border-black pb-4 mb-6">
+            <div class="text-center">
+                ${showLogo ? `
+                    <div class="flex justify-center mb-2">
+                        <div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                            <i class="fas fa-school text-gray-500 text-2xl"></i>
+                        </div>
+                    </div>
+                ` : ''}
+                <p class="text-sm font-medium">${user.schoolName || 'NAMA SEKOLAH'}</p>
+                <p class="text-xs text-gray-600">${user.schoolAddress || 'Alamat Sekolah'}</p>
+                <p class="text-xs text-gray-600">${user.kabupatenKota ? user.kabupatenKota + ', ' : ''}${user.provinsi || ''}</p>
+                <div class="border-t-2 border-black mt-2 pt-2">
+                    <h2 class="text-xl font-bold uppercase">${title}</h2>
+                    ${subtitle ? `<h3 class="text-lg font-semibold mt-1">${subtitle}</h3>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
 
 // =====================================================
 // CONTINUE IN NEXT PART (Bank Soal & Export Modal)
