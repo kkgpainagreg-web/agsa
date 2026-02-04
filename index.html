@@ -4,45 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Si Gumart - Aplikasi Guru Smart</title>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#2563eb',
-                        secondary: '#7c3aed',
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/custom.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; color: #6b7280; transition: all 0.2s; cursor: pointer; }
+        .nav-link:hover { background: #f3f4f6; }
+        .nav-link.active { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 24px; border-radius: 12px; font-weight: 500; border: none; cursor: pointer; }
+        .btn-primary:hover { opacity: 0.9; }
+        .form-input { width: 100%; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 12px; outline: none; }
+        .form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .stats-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .stats-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); transition: all 0.3s; }
+        .dimension-card { background: white; border-radius: 12px; padding: 12px; border-left: 4px solid; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .animate-fadeIn { animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-gray-50 font-['Inter'] min-h-screen">
-    
-    <!-- Loading Overlay -->
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Loading -->
     <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-xl p-8 flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
             <p class="mt-4 text-gray-600">Memproses...</p>
         </div>
     </div>
-    
+
     <!-- Toast -->
     <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl p-4 flex items-center gap-3 min-w-80">
-            <div id="toastIcon" class="text-2xl"></div>
+        <div class="bg-white rounded-lg shadow-xl p-4 flex items-center gap-3 min-w-72">
+            <span id="toastIcon" class="text-2xl"></span>
             <div>
                 <p id="toastTitle" class="font-semibold"></p>
                 <p id="toastMessage" class="text-sm text-gray-600"></p>
@@ -54,21 +49,19 @@
     <div id="loginPage" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
             <div class="text-center mb-8">
-                <div class="w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-2xl mx-auto flex items-center justify-center mb-4">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl mx-auto flex items-center justify-center mb-4">
                     <i class="fas fa-graduation-cap text-white text-3xl"></i>
                 </div>
                 <h1 class="text-3xl font-bold text-gray-800">Si Gumart</h1>
                 <p class="text-gray-500 mt-2">Aplikasi Guru Smart</p>
             </div>
             
-            <button id="googleLoginBtn" class="w-full bg-white border-2 border-gray-200 rounded-xl py-3 px-4 flex items-center justify-center gap-3 hover:border-primary hover:bg-gray-50 transition-all duration-200">
+            <button id="googleLoginBtn" class="w-full bg-white border-2 border-gray-200 rounded-xl py-3 px-4 flex items-center justify-center gap-3 hover:border-blue-500 hover:bg-gray-50 transition-all">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="w-6 h-6">
                 <span class="font-medium text-gray-700">Masuk dengan Google</span>
             </button>
             
-            <p class="mt-6 text-center text-sm text-gray-500">
-                Dengan masuk, Anda menyetujui <a href="#" class="text-primary hover:underline">Syarat & Ketentuan</a>
-            </p>
+            <p class="mt-6 text-center text-sm text-gray-500">Dengan masuk, Anda menyetujui Syarat & Ketentuan</p>
         </div>
     </div>
 
@@ -77,63 +70,58 @@
         <div class="max-w-2xl mx-auto">
             <div class="bg-white rounded-2xl shadow-xl p-8">
                 <div class="text-center mb-8">
-                    <div class="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-xl mx-auto flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl mx-auto flex items-center justify-center mb-4">
                         <i class="fas fa-user-cog text-white text-2xl"></i>
                     </div>
                     <h2 class="text-2xl font-bold text-gray-800">Lengkapi Profil</h2>
                     <p class="text-gray-500 mt-2">Silakan lengkapi data untuk melanjutkan</p>
                 </div>
                 
-                <form id="setupForm" class="space-y-6">
+                <form id="setupForm" class="space-y-5">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap *</label>
-                        <input type="text" id="setupNamaGuru" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                        <input type="text" id="setupNamaGuru" required class="form-input">
                     </div>
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">NIP (Opsional)</label>
-                        <input type="text" id="setupNIP" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                        <input type="text" id="setupNIP" class="form-input">
                     </div>
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jenjang *</label>
-                        <select id="setupJenjang" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                        <select id="setupJenjang" required class="form-input">
                             <option value="">Pilih Jenjang</option>
                             <option value="SD">SD / MI</option>
                             <option value="SMP">SMP / MTs</option>
                             <option value="SMA">SMA / MA / SMK</option>
                         </select>
                     </div>
-                    
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">NPSN Sekolah *</label>
                         <div class="flex gap-2">
-                            <input type="text" id="setupNPSN" required maxlength="8" class="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none" placeholder="8 digit NPSN">
-                            <button type="button" id="cekNPSNBtn" class="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90">Cek</button>
+                            <input type="text" id="setupNPSN" required maxlength="8" class="form-input flex-1" placeholder="8 digit">
+                            <button type="button" id="cekNPSNBtn" class="btn-primary">Cek</button>
                         </div>
                         <p id="npsnStatus" class="mt-2 text-sm hidden"></p>
                     </div>
-                    
                     <div id="sekolahSection" class="hidden space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah *</label>
-                            <input type="text" id="setupNamaSekolah" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                            <input type="text" id="setupNamaSekolah" class="form-input">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Alamat Sekolah</label>
-                            <textarea id="setupAlamat" rows="2" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none"></textarea>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Alamat</label>
+                            <textarea id="setupAlamat" rows="2" class="form-input"></textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Kepala Sekolah</label>
-                            <input type="text" id="setupKepsek" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                            <input type="text" id="setupKepsek" class="form-input">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">NIP Kepala Sekolah</label>
-                            <input type="text" id="setupNIPKepsek" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary outline-none">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">NIP Kepsek</label>
+                            <input type="text" id="setupNIPKepsek" class="form-input">
                         </div>
                     </div>
-                    
-                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-primary to-secondary text-white rounded-xl font-medium hover:opacity-90">
+                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:opacity-90">
                         Simpan & Lanjutkan
                     </button>
                 </form>
@@ -144,62 +132,53 @@
     <!-- MAIN APP -->
     <div id="mainApp" class="hidden">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-xl z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+        <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-xl z-40 transform -translate-x-full lg:translate-x-0 transition-transform">
             <div class="p-6 border-b">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                         <i class="fas fa-graduation-cap text-white"></i>
                     </div>
                     <div>
                         <h1 class="font-bold text-gray-800">Si Gumart</h1>
-                        <p class="text-xs text-gray-500">Guru Smart App</p>
+                        <p class="text-xs text-gray-500">Guru Smart</p>
                     </div>
                 </div>
             </div>
-            
             <div class="p-4 border-b">
                 <div class="flex items-center gap-3">
-                    <img id="userPhoto" src="" alt="User" class="w-10 h-10 rounded-full object-cover">
+                    <img id="userPhoto" src="" class="w-10 h-10 rounded-full">
                     <div class="flex-1 min-w-0">
                         <p id="userName" class="font-medium text-gray-800 truncate"></p>
                         <p id="userSchool" class="text-xs text-gray-500 truncate"></p>
                     </div>
                 </div>
             </div>
-            
-            <nav class="p-4 overflow-y-auto h-[calc(100vh-200px)]">
-                <ul class="space-y-1">
-                    <li><a href="#" data-page="dashboard" class="nav-link active"><i class="fas fa-home w-5"></i><span>Dashboard</span></a></li>
-                    <li><a href="#" data-page="profil" class="nav-link"><i class="fas fa-user w-5"></i><span>Profil</span></a></li>
-                    
+            <nav class="p-4 overflow-y-auto h-[calc(100vh-180px)]">
+                <ul class="space-y-1" id="navMenu">
+                    <li><a class="nav-link active" data-page="dashboard"><i class="fas fa-home w-5"></i><span>Dashboard</span></a></li>
+                    <li><a class="nav-link" data-page="profil"><i class="fas fa-user w-5"></i><span>Profil</span></a></li>
                     <li class="pt-4"><p class="px-4 text-xs font-semibold text-gray-400 uppercase">Master Data</p></li>
-                    <li><a href="#" data-page="mapel" class="nav-link"><i class="fas fa-book w-5"></i><span>Mata Pelajaran</span></a></li>
-                    <li><a href="#" data-page="cp" class="nav-link"><i class="fas fa-bullseye w-5"></i><span>Capaian Pembelajaran</span></a></li>
-                    <li><a href="#" data-page="kelas" class="nav-link"><i class="fas fa-users w-5"></i><span>Kelas & Rombel</span></a></li>
-                    
+                    <li><a class="nav-link" data-page="mapel"><i class="fas fa-book w-5"></i><span>Mata Pelajaran</span></a></li>
+                    <li><a class="nav-link" data-page="cp"><i class="fas fa-bullseye w-5"></i><span>Capaian Pembelajaran</span></a></li>
+                    <li><a class="nav-link" data-page="kelas"><i class="fas fa-users w-5"></i><span>Kelas</span></a></li>
                     <li class="pt-4"><p class="px-4 text-xs font-semibold text-gray-400 uppercase">Dokumen</p></li>
-                    <li><a href="#" data-page="kalender" class="nav-link"><i class="fas fa-calendar-alt w-5"></i><span>Kalender</span></a></li>
-                    <li><a href="#" data-page="jadwal" class="nav-link"><i class="fas fa-clock w-5"></i><span>Jadwal</span></a></li>
-                    <li><a href="#" data-page="atp" class="nav-link"><i class="fas fa-chart-line w-5"></i><span>ATP</span></a></li>
-                    <li><a href="#" data-page="modul" class="nav-link"><i class="fas fa-file-alt w-5"></i><span>Modul Ajar</span></a></li>
-                    <li><a href="#" data-page="lkpd" class="nav-link"><i class="fas fa-clipboard-list w-5"></i><span>LKPD</span></a></li>
-                    <li><a href="#" data-page="banksoal" class="nav-link"><i class="fas fa-question-circle w-5"></i><span>Bank Soal</span></a></li>
-                    
-                    <li class="pt-4">
-                        <a href="#" id="logoutBtn" class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50">
-                            <i class="fas fa-sign-out-alt w-5"></i><span>Keluar</span>
-                        </a>
-                    </li>
+                    <li><a class="nav-link" data-page="kalender"><i class="fas fa-calendar w-5"></i><span>Kalender</span></a></li>
+                    <li><a class="nav-link" data-page="jadwal"><i class="fas fa-clock w-5"></i><span>Jadwal</span></a></li>
+                    <li><a class="nav-link" data-page="atp"><i class="fas fa-chart-line w-5"></i><span>ATP</span></a></li>
+                    <li><a class="nav-link" data-page="modul"><i class="fas fa-file-alt w-5"></i><span>Modul Ajar</span></a></li>
+                    <li><a class="nav-link" data-page="lkpd"><i class="fas fa-clipboard w-5"></i><span>LKPD</span></a></li>
+                    <li><a class="nav-link" data-page="banksoal"><i class="fas fa-question-circle w-5"></i><span>Bank Soal</span></a></li>
+                    <li class="pt-4"><a class="nav-link text-red-500 hover:bg-red-50" id="logoutBtn"><i class="fas fa-sign-out-alt w-5"></i><span>Keluar</span></a></li>
                 </ul>
             </nav>
         </aside>
         
         <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden"></div>
         
-        <!-- Main Content -->
+        <!-- Main -->
         <main class="lg:ml-64 min-h-screen">
             <header class="bg-white shadow-sm sticky top-0 z-20">
-                <div class="flex items-center justify-between px-4 py-3 lg:px-6">
+                <div class="flex items-center justify-between px-4 py-3">
                     <div class="flex items-center gap-4">
                         <button id="menuToggle" class="lg:hidden text-gray-600"><i class="fas fa-bars text-xl"></i></button>
                         <h2 id="pageTitle" class="text-lg font-semibold text-gray-800">Dashboard</h2>
@@ -207,12 +186,534 @@
                     <span id="currentDate" class="text-sm text-gray-500 hidden sm:block"></span>
                 </div>
             </header>
-            
             <div id="pageContent" class="p-4 lg:p-6"></div>
         </main>
     </div>
 
-    <!-- Scripts -->
-    <script type="module" src="js/app.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ========== FIREBASE CONFIG ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyRKvngA1EqlQmgxgxU4465qgRw8TdT08",
+            authDomain: "si-gumart.firebaseapp.com",
+            projectId: "si-gumart",
+            storageBucket: "si-gumart.firebasestorage.app",
+            messagingSenderId: "544375918988",
+            appId: "1:544375918988:web:3375b3025b7d51ea2546a9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+        // ========== STATE ==========
+        let currentUser = null;
+        let currentUserData = null;
+        let currentSchoolData = null;
+        let currentPage = 'dashboard';
+
+        // ========== 8 DIMENSI PROFIL ==========
+        const DIMENSI = [
+            { id: 'keimanan', nama: 'Keimanan', warna: '#8B5CF6', icon: 'fa-pray' },
+            { id: 'kewargaan', nama: 'Kewargaan', warna: '#EF4444', icon: 'fa-flag' },
+            { id: 'penalaran', nama: 'Penalaran Kritis', warna: '#3B82F6', icon: 'fa-brain' },
+            { id: 'kreativitas', nama: 'Kreativitas', warna: '#F59E0B', icon: 'fa-lightbulb' },
+            { id: 'kolaborasi', nama: 'Kolaborasi', warna: '#10B981', icon: 'fa-users' },
+            { id: 'kemandirian', nama: 'Kemandirian', warna: '#6366F1', icon: 'fa-user-check' },
+            { id: 'kesehatan', nama: 'Kesehatan', warna: '#EC4899', icon: 'fa-heart' },
+            { id: 'komunikasi', nama: 'Komunikasi', warna: '#14B8A6', icon: 'fa-comments' }
+        ];
+
+        // ========== INIT ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Si Gumart Starting...');
+            updateDate();
+            setupListeners();
+            
+            // Auth observer
+            auth.onAuthStateChanged(async (user) => {
+                console.log('Auth state:', user ? 'logged in' : 'logged out');
+                if (user) {
+                    currentUser = user;
+                    const userData = await getUserData(user.uid);
+                    if (userData) {
+                        currentUserData = userData;
+                        currentSchoolData = await getSchoolData(userData.npsn);
+                        showMainApp();
+                    } else {
+                        showSetup(user);
+                    }
+                } else {
+                    showLogin();
+                }
+            });
+        });
+
+        // ========== AUTH FUNCTIONS ==========
+        async function loginWithGoogle() {
+            try {
+                showLoading();
+                await auth.signInWithPopup(googleProvider);
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('error', 'Login Gagal', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function logout() {
+            if (confirm('Keluar dari aplikasi?')) {
+                showLoading();
+                await auth.signOut();
+                hideLoading();
+            }
+        }
+
+        async function getUserData(uid) {
+            try {
+                const doc = await db.collection('users').doc(uid).get();
+                return doc.exists ? { id: doc.id, ...doc.data() } : null;
+            } catch (e) {
+                console.error('Get user error:', e);
+                return null;
+            }
+        }
+
+        async function getSchoolData(npsn) {
+            try {
+                const doc = await db.collection('schools').doc(npsn).get();
+                return doc.exists ? { id: doc.id, ...doc.data() } : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function checkNPSN(npsn) {
+            try {
+                const doc = await db.collection('schools').doc(npsn).get();
+                return doc.exists ? { exists: true, data: doc.data() } : { exists: false };
+            } catch (e) {
+                return { exists: false };
+            }
+        }
+
+        async function saveProfile(data) {
+            try {
+                showLoading();
+                const uid = currentUser.uid;
+                
+                // Save user
+                const userData = {
+                    uid, 
+                    email: currentUser.email, 
+                    photoURL: currentUser.photoURL,
+                    namaGuru: data.namaGuru,
+                    nip: data.nip || '',
+                    npsn: data.npsn,
+                    jenjang: data.jenjang,
+                    createdAt: new Date().toISOString()
+                };
+                await db.collection('users').doc(uid).set(userData);
+                
+                // Check/create school
+                const schoolCheck = await checkNPSN(data.npsn);
+                if (!schoolCheck.exists) {
+                    const schoolData = {
+                        npsn: data.npsn,
+                        namaSekolah: data.namaSekolah,
+                        alamat: data.alamat || '',
+                        jenjang: data.jenjang,
+                        kepalaSekolah: data.kepalaSekolah || '',
+                        nipKepsek: data.nipKepsek || '',
+                        createdAt: new Date().toISOString(),
+                        createdBy: uid
+                    };
+                    await db.collection('schools').doc(data.npsn).set(schoolData);
+                    currentSchoolData = schoolData;
+                } else {
+                    currentSchoolData = schoolCheck.data;
+                }
+                
+                currentUserData = userData;
+                showToast('success', 'Berhasil', 'Profil disimpan');
+                showMainApp();
+            } catch (error) {
+                console.error('Save error:', error);
+                showToast('error', 'Gagal', error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ========== PAGE FUNCTIONS ==========
+        function showLogin() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('setupPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+
+        function showSetup(user) {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('setupPage').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('setupNamaGuru').value = user.displayName || '';
+        }
+
+        function showMainApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('setupPage').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            document.getElementById('userPhoto').src = currentUserData.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUserData.namaGuru);
+            document.getElementById('userName').textContent = currentUserData.namaGuru;
+            document.getElementById('userSchool').textContent = currentSchoolData?.namaSekolah || '-';
+            
+            navigateTo('dashboard');
+        }
+
+        function navigateTo(page) {
+            currentPage = page;
+            
+            // Update nav
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.dataset.page === page);
+            });
+            
+            // Update title
+            const titles = {
+                dashboard: 'Dashboard', profil: 'Profil', mapel: 'Mata Pelajaran',
+                cp: 'Capaian Pembelajaran', kelas: 'Kelas', kalender: 'Kalender',
+                jadwal: 'Jadwal', atp: 'ATP', modul: 'Modul Ajar', 
+                lkpd: 'LKPD', banksoal: 'Bank Soal'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || page;
+            
+            // Render
+            renderPage(page);
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 1024) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('sidebarOverlay').classList.add('hidden');
+            }
+        }
+
+        function renderPage(page) {
+            const container = document.getElementById('pageContent');
+            
+            switch(page) {
+                case 'dashboard':
+                    container.innerHTML = renderDashboard();
+                    break;
+                case 'profil':
+                    container.innerHTML = renderProfil();
+                    break;
+                default:
+                    container.innerHTML = renderComingSoon(page);
+            }
+        }
+
+        // ========== RENDER FUNCTIONS ==========
+        function getGreeting() {
+            const h = new Date().getHours();
+            if (h < 12) return 'Selamat Pagi,';
+            if (h < 15) return 'Selamat Siang,';
+            if (h < 18) return 'Selamat Sore,';
+            return 'Selamat Malam,';
+        }
+
+        function renderDashboard() {
+            return `
+                <div class="animate-fadeIn">
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 lg:p-8 text-white mb-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                                <p class="text-white/80 mb-1">${getGreeting()}</p>
+                                <h1 class="text-2xl lg:text-3xl font-bold">${currentUserData?.namaGuru || 'Guru'}</h1>
+                                <p class="text-white/80 mt-2"><i class="fas fa-school mr-2"></i>${currentSchoolData?.namaSekolah || '-'}</p>
+                            </div>
+                            <div class="mt-4 lg:mt-0">
+                                <p class="text-white/80 text-sm">Tahun Pelajaran</p>
+                                <p class="text-xl font-bold">2024/2025</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="stats-card card-hover">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Mata Pelajaran</p>
+                                    <p class="text-2xl font-bold text-gray-800">0</p>
+                                </div>
+                                <div class="stats-icon bg-blue-100 text-blue-600"><i class="fas fa-book"></i></div>
+                            </div>
+                        </div>
+                        <div class="stats-card card-hover">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Capaian Pembelajaran</p>
+                                    <p class="text-2xl font-bold text-gray-800">0</p>
+                                </div>
+                                <div class="stats-icon bg-green-100 text-green-600"><i class="fas fa-bullseye"></i></div>
+                            </div>
+                        </div>
+                        <div class="stats-card card-hover">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Modul Ajar</p>
+                                    <p class="text-2xl font-bold text-gray-800">0</p>
+                                </div>
+                                <div class="stats-icon bg-purple-100 text-purple-600"><i class="fas fa-file-alt"></i></div>
+                            </div>
+                        </div>
+                        <div class="stats-card card-hover">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">Bank Soal</p>
+                                    <p class="text-2xl font-bold text-gray-800">0</p>
+                                </div>
+                                <div class="stats-icon bg-orange-100 text-orange-600"><i class="fas fa-question-circle"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="bg-white rounded-xl shadow-sm p-6">
+                                <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-bolt text-yellow-500 mr-2"></i>Aksi Cepat</h3>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <button onclick="navigateTo('cp')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-blue-600 transition-all">
+                                        <i class="fas fa-bullseye text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">Input CP</span>
+                                    </button>
+                                    <button onclick="navigateTo('atp')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-green-50 hover:text-green-600 transition-all">
+                                        <i class="fas fa-chart-line text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">Buat ATP</span>
+                                    </button>
+                                    <button onclick="navigateTo('modul')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-purple-50 hover:text-purple-600 transition-all">
+                                        <i class="fas fa-file-alt text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">Modul Ajar</span>
+                                    </button>
+                                    <button onclick="navigateTo('jadwal')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-cyan-50 hover:text-cyan-600 transition-all">
+                                        <i class="fas fa-clock text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">Jadwal</span>
+                                    </button>
+                                    <button onclick="navigateTo('lkpd')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-pink-50 hover:text-pink-600 transition-all">
+                                        <i class="fas fa-clipboard-list text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">LKPD</span>
+                                    </button>
+                                    <button onclick="navigateTo('banksoal')" class="flex flex-col items-center p-4 rounded-xl bg-gray-50 hover:bg-orange-50 hover:text-orange-600 transition-all">
+                                        <i class="fas fa-question-circle text-2xl mb-2"></i>
+                                        <span class="text-sm font-medium">Bank Soal</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6">
+                                <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-star text-yellow-500 mr-2"></i>8 Dimensi Profil Lulusan</h3>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    ${DIMENSI.map(d => `
+                                        <div class="dimension-card" style="border-left-color: ${d.warna}">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas ${d.icon}" style="color: ${d.warna}"></i>
+                                                <span class="font-medium text-xs text-gray-800">${d.nama}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-history text-gray-400 mr-2"></i>Aktivitas Terbaru</h3>
+                            <div class="text-center py-8 text-gray-400">
+                                <i class="fas fa-inbox text-3xl mb-2"></i>
+                                <p class="text-sm">Belum ada aktivitas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderProfil() {
+            return `
+                <div class="animate-fadeIn max-w-4xl mx-auto">
+                    <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white mb-6">
+                        <div class="flex flex-col sm:flex-row items-center gap-6">
+                            <img src="${currentUserData?.photoURL || 'https://ui-avatars.com/api/?name=G'}" class="w-24 h-24 rounded-full border-4 border-white/30">
+                            <div class="text-center sm:text-left">
+                                <h1 class="text-2xl font-bold">${currentUserData?.namaGuru || '-'}</h1>
+                                <p class="text-white/80">${currentUserData?.email || '-'}</p>
+                                <p class="text-white/80 mt-1"><i class="fas fa-id-card mr-2"></i>NIP: ${currentUserData?.nip || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-user text-blue-600 mr-2"></i>Data Guru</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">Nama</span><span>${currentUserData?.namaGuru || '-'}</span></div>
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">NIP</span><span>${currentUserData?.nip || '-'}</span></div>
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">Email</span><span>${currentUserData?.email || '-'}</span></div>
+                                <div class="flex justify-between py-2"><span class="text-gray-500">Jenjang</span><span>${currentUserData?.jenjang || '-'}</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-xl shadow-sm p-6">
+                            <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-school text-blue-600 mr-2"></i>Data Sekolah</h3>
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">NPSN</span><span>${currentUserData?.npsn || '-'}</span></div>
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">Nama</span><span>${currentSchoolData?.namaSekolah || '-'}</span></div>
+                                <div class="flex justify-between py-2 border-b"><span class="text-gray-500">Kepala Sekolah</span><span>${currentSchoolData?.kepalaSekolah || '-'}</span></div>
+                                <div class="flex justify-between py-2"><span class="text-gray-500">NIP Kepsek</span><span>${currentSchoolData?.nipKepsek || '-'}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderComingSoon(page) {
+            const titles = {
+                mapel: 'Mata Pelajaran', cp: 'Capaian Pembelajaran', kelas: 'Kelas',
+                kalender: 'Kalender Pendidikan', jadwal: 'Jadwal Pelajaran', atp: 'ATP',
+                modul: 'Modul Ajar', lkpd: 'LKPD', banksoal: 'Bank Soal'
+            };
+            return `
+                <div class="animate-fadeIn text-center py-20">
+                    <div class="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-tools text-blue-600 text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">${titles[page] || page}</h2>
+                    <p class="text-gray-500 mb-6">Fitur ini sedang dalam pengembangan</p>
+                    <button onclick="navigateTo('dashboard')" class="btn-primary">
+                        <i class="fas fa-arrow-left mr-2"></i>Kembali ke Dashboard
+                    </button>
+                </div>
+            `;
+        }
+
+        // ========== UTILITIES ==========
+        function updateDate() {
+            const el = document.getElementById('currentDate');
+            if (el) {
+                el.textContent = new Date().toLocaleDateString('id-ID', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                });
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showToast(type, title, message) {
+            const toast = document.getElementById('toast');
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            document.getElementById('toastIcon').textContent = icons[type] || 'ℹ️';
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
+        }
+
+        // ========== EVENT LISTENERS ==========
+        function setupListeners() {
+            // Login button
+            document.getElementById('googleLoginBtn').addEventListener('click', loginWithGoogle);
+            
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            
+            // Check NPSN
+            document.getElementById('cekNPSNBtn').addEventListener('click', async () => {
+                const npsn = document.getElementById('setupNPSN').value.trim();
+                const statusEl = document.getElementById('npsnStatus');
+                const sekolahSection = document.getElementById('sekolahSection');
+                
+                if (npsn.length !== 8) {
+                    statusEl.textContent = 'NPSN harus 8 digit';
+                    statusEl.className = 'mt-2 text-sm text-red-500';
+                    statusEl.classList.remove('hidden');
+                    return;
+                }
+                
+                showLoading();
+                const result = await checkNPSN(npsn);
+                hideLoading();
+                
+                sekolahSection.classList.remove('hidden');
+                
+                if (result.exists) {
+                    statusEl.textContent = '✓ Sekolah ditemukan: ' + result.data.namaSekolah;
+                    statusEl.className = 'mt-2 text-sm text-green-600';
+                    document.getElementById('setupNamaSekolah').value = result.data.namaSekolah;
+                    document.getElementById('setupNamaSekolah').readOnly = true;
+                    document.getElementById('setupAlamat').value = result.data.alamat || '';
+                    document.getElementById('setupKepsek').value = result.data.kepalaSekolah || '';
+                    document.getElementById('setupNIPKepsek').value = result.data.nipKepsek || '';
+                } else {
+                    statusEl.textContent = 'Sekolah belum terdaftar. Lengkapi data.';
+                    statusEl.className = 'mt-2 text-sm text-yellow-600';
+                    document.getElementById('setupNamaSekolah').readOnly = false;
+                }
+                statusEl.classList.remove('hidden');
+            });
+            
+            // Setup form submit
+            document.getElementById('setupForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const namaSekolah = document.getElementById('setupNamaSekolah').value.trim();
+                if (!namaSekolah) {
+                    showToast('error', 'Error', 'Klik tombol Cek NPSN dahulu');
+                    return;
+                }
+                
+                saveProfile({
+                    namaGuru: document.getElementById('setupNamaGuru').value.trim(),
+                    nip: document.getElementById('setupNIP').value.trim(),
+                    jenjang: document.getElementById('setupJenjang').value,
+                    npsn: document.getElementById('setupNPSN').value.trim(),
+                    namaSekolah: namaSekolah,
+                    alamat: document.getElementById('setupAlamat').value.trim(),
+                    kepalaSekolah: document.getElementById('setupKepsek').value.trim(),
+                    nipKepsek: document.getElementById('setupNIPKepsek').value.trim()
+                });
+            });
+            
+            // Sidebar toggle
+            document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
+            document.getElementById('sidebarOverlay').addEventListener('click', toggleSidebar);
+            
+            // Navigation
+            document.querySelectorAll('.nav-link[data-page]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(e.currentTarget.dataset.page);
+                });
+            });
+        }
+
+        console.log('✅ Script loaded successfully');
+    </script>
 </body>
 </html>
