@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modul Ajar - Admin PAI Satu Pintu</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- html2pdf untuk export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- Konfigurasi Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pai-hijau': {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .sidebar-link { transition: all 0.3s ease; }
+        .sidebar-link:hover { transform: translateX(5px); }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #16a34a;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        
+        /* Card TP untuk dipilih */
+        .tp-select-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .tp-select-card:hover {
+            border-color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        .tp-select-card.selected {
+            border-color: #16a34a;
+            background-color: #dcfce7;
+        }
+        
+        /* Stepper */
+        .step-item.active .step-number {
+            background-color: #16a34a;
+            color: white;
+        }
+        .step-item.completed .step-number {
+            background-color: #16a34a;
+            color: white;
+        }
+        .step-item.completed .step-number::after {
+            content: '✓';
+        }
+        
+        /* Textarea auto-resize */
+        .auto-resize {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        /* Print styles */
+        @media print {
+            body * { visibility: hidden; }
+            #modul-preview, #modul-preview * { visibility: visible; }
+            #modul-preview {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print { display: none !important; }
+            @page { size: A4; margin: 2cm; }
+        }
+        
+        /* Modul document style */
+        .modul-dokumen {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #000;
+        }
+        .modul-dokumen h1 { font-size: 14pt; font-weight: bold; }
+        .modul-dokumen h2 { font-size: 12pt; font-weight: bold; margin-top: 15px; }
+        .modul-dokumen table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .modul-dokumen th, .modul-dokumen td { 
+            border: 1px solid #000; 
+            padding: 8px; 
+            vertical-align: top;
+        }
+        .modul-dokumen th { background-color: #f0f0f0; }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+    
+    <div class="flex min-h-screen">
+        
+        <!-- ================================================
+             SIDEBAR
+             ================================================ -->
+        <aside class="w-64 bg-pai-hijau-800 text-white fixed h-full z-50 no-print">
+            <div class="p-6 border-b border-pai-hijau-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                        <i class="fas fa-mosque text-pai-hijau-700 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">Admin PAI</h1>
+                        <p class="text-pai-hijau-300 text-xs">Satu Pintu</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="p-4">
+                <p class="text-pai-hijau-400 text-xs uppercase tracking-wider mb-4 px-3">Menu Utama</p>
+                <ul class="space-y-2">
+                    <li><a href="dashboard.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-home w-5"></i><span class="ml-3">Dashboard</span></a></li>
+                    <li><a href="profil.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-user w-5"></i><span class="ml-3">Profil Guru</span></a></li>
+                    <li><a href="kalender.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-calendar-alt w-5"></i><span class="ml-3">Kalender Pendidikan</span></a></li>
+                    <li><a href="perencanaan.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-tasks w-5"></i><span class="ml-3">Perencanaan</span></a></li>
+                    <!-- Aktif -->
+                    <li><a href="modul-ajar.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg bg-pai-hijau-700 text-white"><i class="fas fa-book-open w-5"></i><span class="ml-3">Modul Ajar</span></a></li>
+                    <li><a href="absensi.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-clipboard-check w-5"></i><span class="ml-3">Absensi Siswa</span></a></li>
+                    <li><a href="nilai.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-chart-bar w-5"></i><span class="ml-3">Daftar Nilai</span></a></li>
+                </ul>
+                
+                <p class="text-pai-hijau-400 text-xs uppercase tracking-wider mb-4 px-3 mt-8">Dokumen</p>
+                <ul class="space-y-2">
+                    <li><a href="cetak.html" class="sidebar-link flex items-center px-4 py-3 rounded-lg hover:bg-pai-hijau-700 text-pai-hijau-100"><i class="fas fa-print w-5"></i><span class="ml-3">Cetak Dokumen</span></a></li>
+                </ul>
+            </nav>
+            
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-pai-hijau-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-pai-hijau-600 rounded-full flex items-center justify-center"><i class="fas fa-user"></i></div>
+                    <div class="flex-1">
+                        <p id="nama-guru-sidebar" class="text-sm font-medium truncate">Memuat...</p>
+                        <p class="text-pai-hijau-400 text-xs">Guru PAI</p>
+                    </div>
+                    <button onclick="logoutUser()" class="text-pai-hijau-400 hover:text-white"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- ================================================
+             KONTEN UTAMA
+             ================================================ -->
+        <main class="flex-1 ml-64">
+            
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200 px-8 py-4 sticky top-0 z-40 no-print">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Modul Ajar</h2>
+                        <p class="text-gray-500 text-sm">Generate modul ajar otomatis dari Tujuan Pembelajaran</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span id="badge-modul-count" class="px-3 py-1 bg-pai-hijau-100 text-pai-hijau-700 rounded-full text-sm font-medium">
+                            0 Modul Tersimpan
+                        </span>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Area Konten -->
+            <div class="p-8 no-print">
+                
+                <!-- ================================================
+                     STEPPER PROGRESS
+                     ================================================ -->
+                <div class="bg-white rounded-2xl shadow-md p-6 mb-6 fade-in">
+                    <div class="flex items-center justify-between">
+                        
+                        <!-- Step 1 -->
+                        <div class="step-item active flex-1 text-center" id="step-indicator-1">
+                            <div class="step-number w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center mx-auto mb-2 font-bold">1</div>
+                            <p class="text-sm font-medium text-gray-700">Pilih TP</p>
+                        </div>
+                        
+                        <div class="flex-1 h-1 bg-gray-200 mx-2"><div id="progress-1-2" class="h-full bg-pai-hijau-500 transition-all" style="width: 0%"></div></div>
+                        
+                        <!-- Step 2 -->
+                        <div class="step-item flex-1 text-center" id="step-indicator-2">
+                            <div class="step-number w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center mx-auto mb-2 font-bold">2</div>
+                            <p class="text-sm font-medium text-gray-700">Isi Komponen</p>
+                        </div>
+                        
+                        <div class="flex-1 h-1 bg-gray-200 mx-2"><div id="progress-2-3" class="h-full bg-pai-hijau-500 transition-all" style="width: 0%"></div></div>
+                        
+                        <!-- Step 3 -->
+                        <div class="step-item flex-1 text-center" id="step-indicator-3">
+                            <div class="step-number w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center mx-auto mb-2 font-bold">3</div>
+                            <p class="text-sm font-medium text-gray-700">Preview & Simpan</p>
+                        </div>
+                        
+                    </div>
+                </div>
+                
+                <!-- ================================================
+                     STEP 1: PILIH TUJUAN PEMBELAJARAN
+                     ================================================ -->
+                <div id="step-1-content" class="fade-in">
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
+                        
+                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                                    <i class="fas fa-list-check text-blue-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">Pilih Tujuan Pembelajaran</h3>
+                                    <p class="text-sm text-gray-500">Pilih TP yang akan dibuatkan modul ajarnya</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                                <select id="filter-kelas" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none bg-white">
+                                    <option value="">-- Pilih Kelas --</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Semester</label>
+                                <select id="filter-semester" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none bg-white">
+                                    <option value="">-- Pilih Semester --</option>
+                                    <option value="ganjil">Semester 1 (Ganjil)</option>
+                                    <option value="genap">Semester 2 (Genap)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="loadTPFromPerencanaan()" class="w-full px-6 py-3 bg-pai-hijau-600 text-white font-medium rounded-xl hover:bg-pai-hijau-700 transition-colors">
+                                    <i class="fas fa-search mr-2"></i>Tampilkan TP
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Daftar TP -->
+                        <div id="daftar-tp-container">
+                            <div class="text-center py-12 text-gray-400">
+                                <i class="fas fa-clipboard-list text-5xl mb-4"></i>
+                                <p>Pilih kelas dan semester untuk melihat daftar TP</p>
+                                <p class="text-sm">TP diambil dari data Perencanaan yang sudah dibuat</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Tombol Next -->
+                        <div id="btn-next-step1" class="hidden mt-6 flex justify-end">
+                            <button onclick="goToStep(2)" class="px-6 py-3 bg-pai-hijau-600 text-white font-medium rounded-xl hover:bg-pai-hijau-700 transition-colors">
+                                Lanjut ke Komponen Modul <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                        
+                    </div>
+                    
+                    <!-- Daftar Modul yang Sudah Dibuat -->
+                    <div class="bg-white rounded-2xl shadow-md p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800">
+                                <i class="fas fa-folder-open text-pai-hijau-600 mr-2"></i>
+                                Modul Ajar Tersimpan
+                            </h3>
+                        </div>
+                        
+                        <div id="daftar-modul-tersimpan">
+                            <div class="text-center py-8 text-gray-400">
+                                <i class="fas fa-inbox text-4xl mb-3"></i>
+                                <p>Belum ada modul ajar yang tersimpan</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- ================================================
+                     STEP 2: ISI KOMPONEN MODUL AJAR
+                     ================================================ -->
+                <div id="step-2-content" class="hidden fade-in">
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
+                        
+                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mr-4">
+                                    <i class="fas fa-edit text-purple-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">Komponen Modul Ajar</h3>
+                                    <p class="text-sm text-gray-500">Lengkapi atau edit komponen modul ajar</p>
+                                </div>
+                            </div>
+                            <button onclick="goToStep(1)" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-arrow-left mr-1"></i> Kembali
+                            </button>
+                        </div>
+                        
+                        <!-- Info TP yang dipilih -->
+                        <div id="info-tp-dipilih" class="bg-pai-hijau-50 border border-pai-hijau-200 rounded-xl p-4 mb-6">
+                            <!-- Akan diisi JavaScript -->
+                        </div>
+                        
+                        <!-- Form Komponen Modul -->
+                        <form id="form-modul-ajar" class="space-y-6">
+                            
+                            <!-- A. INFORMASI UMUM -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" onclick="toggleSection('section-info-umum')" 
+                                        class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <span class="font-bold text-gray-800">A. INFORMASI UMUM</span>
+                                    <i class="fas fa-chevron-down text-gray-400" id="icon-section-info-umum"></i>
+                                </button>
+                                <div id="section-info-umum" class="p-6 space-y-4">
+                                    
+                                    <!-- Identitas Modul -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-info-circle text-gray-400 mr-1"></i> Identitas Modul
+                                        </label>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <input type="text" id="modul-judul" placeholder="Judul/Topik Modul" 
+                                                   class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none">
+                                            <input type="number" id="modul-pertemuan" placeholder="Pertemuan ke-" min="1"
+                                                   class="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Kompetensi Awal -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-user-graduate text-gray-400 mr-1"></i> Kompetensi Awal
+                                        </label>
+                                        <textarea id="modul-kompetensi-awal" rows="3" placeholder="Kompetensi yang harus dimiliki siswa sebelum mempelajari modul ini..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- Profil Pelajar Pancasila -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-flag text-gray-400 mr-1"></i> Profil Pelajar Pancasila yang Dikembangkan
+                                        </label>
+                                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="beriman" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Beriman & Bertakwa</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="mandiri" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Mandiri</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="gotong-royong" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Gotong Royong</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="bernalar-kritis" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Bernalar Kritis</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="kreatif" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Kreatif</span>
+                                            </label>
+                                            <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                <input type="checkbox" name="ppp" value="berkebinekaan" class="mr-2 text-pai-hijau-600">
+                                                <span class="text-sm">Berkebinekaan Global</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Sarana Prasarana -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-tools text-gray-400 mr-1"></i> Sarana dan Prasarana
+                                        </label>
+                                        <textarea id="modul-sarana" rows="2" placeholder="Contoh: Al-Qur'an, buku PAI, proyektor, speaker, video pembelajaran..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- Target Peserta Didik -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-users text-gray-400 mr-1"></i> Target Peserta Didik
+                                        </label>
+                                        <select id="modul-target" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none bg-white">
+                                            <option value="reguler">Peserta didik reguler/tipikal</option>
+                                            <option value="kesulitan">Peserta didik dengan kesulitan belajar</option>
+                                            <option value="cerdas">Peserta didik cerdas istimewa berbakat istimewa</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Model Pembelajaran -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-chalkboard-teacher text-gray-400 mr-1"></i> Model Pembelajaran
+                                        </label>
+                                        <select id="modul-model" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none bg-white">
+                                            <option value="tatap-muka">Tatap Muka</option>
+                                            <option value="pjj-daring">PJJ Daring</option>
+                                            <option value="pjj-luring">PJJ Luring</option>
+                                            <option value="blended">Blended Learning</option>
+                                        </select>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            
+                            <!-- B. KOMPONEN INTI -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" onclick="toggleSection('section-inti')" 
+                                        class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <span class="font-bold text-gray-800">B. KOMPONEN INTI</span>
+                                    <i class="fas fa-chevron-down text-gray-400" id="icon-section-inti"></i>
+                                </button>
+                                <div id="section-inti" class="p-6 space-y-4">
+                                    
+                                    <!-- Tujuan Pembelajaran (auto-filled) -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-bullseye text-gray-400 mr-1"></i> Tujuan Pembelajaran
+                                        </label>
+                                        <textarea id="modul-tujuan" rows="3" readonly
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50"></textarea>
+                                        <p class="text-xs text-gray-400 mt-1">*Otomatis terisi dari TP yang dipilih</p>
+                                    </div>
+                                    
+                                    <!-- Pemahaman Bermakna -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-lightbulb text-gray-400 mr-1"></i> Pemahaman Bermakna
+                                        </label>
+                                        <textarea id="modul-pemahaman" rows="3" placeholder="Apa pemahaman yang akan didapatkan siswa setelah mempelajari materi ini..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- Pertanyaan Pemantik -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-question-circle text-gray-400 mr-1"></i> Pertanyaan Pemantik
+                                        </label>
+                                        <textarea id="modul-pertanyaan" rows="3" placeholder="Pertanyaan yang dapat memantik rasa ingin tahu dan diskusi siswa..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- Kegiatan Pembelajaran -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-tasks text-gray-400 mr-1"></i> Kegiatan Pembelajaran
+                                        </label>
+                                        
+                                        <!-- Pendahuluan -->
+                                        <div class="mb-4">
+                                            <p class="text-sm font-medium text-blue-600 mb-2">🟦 Pendahuluan 
+                                                <input type="number" id="waktu-pendahuluan" value="10" min="5" max="30" class="w-16 px-2 py-1 border rounded text-center text-sm"> menit
+                                            </p>
+                                            <textarea id="modul-pendahuluan" rows="4" placeholder="1. Guru membuka dengan salam dan doa bersama
+2. Guru menyapa dan mengecek kehadiran siswa
+3. Guru menyampaikan tujuan pembelajaran
+4. Guru memberikan apersepsi/pertanyaan pemantik"
+                                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                        </div>
+                                        
+                                        <!-- Inti -->
+                                        <div class="mb-4">
+                                            <p class="text-sm font-medium text-green-600 mb-2">🟩 Kegiatan Inti 
+                                                <input type="number" id="waktu-inti" value="100" min="30" max="200" class="w-16 px-2 py-1 border rounded text-center text-sm"> menit
+                                            </p>
+                                            <textarea id="modul-inti" rows="6" placeholder="1. Siswa mengamati...
+2. Siswa berdiskusi tentang...
+3. Siswa mempraktikkan...
+4. Guru memberikan penguatan...
+5. Siswa mempresentasikan hasil..."
+                                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                        </div>
+                                        
+                                        <!-- Penutup -->
+                                        <div>
+                                            <p class="text-sm font-medium text-orange-600 mb-2">🟧 Penutup 
+                                                <input type="number" id="waktu-penutup" value="10" min="5" max="30" class="w-16 px-2 py-1 border rounded text-center text-sm"> menit
+                                            </p>
+                                            <textarea id="modul-penutup" rows="4" placeholder="1. Guru dan siswa menyimpulkan pembelajaran
+2. Guru memberikan refleksi
+3. Guru menyampaikan materi selanjutnya
+4. Guru menutup dengan doa dan salam"
+                                                      class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Asesmen -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-clipboard-check text-gray-400 mr-1"></i> Asesmen
+                                        </label>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-sm text-gray-600 mb-2">Asesmen Formatif:</p>
+                                                <textarea id="modul-asesmen-formatif" rows="3" placeholder="Observasi, tanya jawab, kuis..."
+                                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600 mb-2">Asesmen Sumatif:</p>
+                                                <textarea id="modul-asesmen-sumatif" rows="3" placeholder="Tes tulis, praktik, proyek..."
+                                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Pengayaan dan Remedial -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-graduation-cap text-gray-400 mr-1"></i> Pengayaan dan Remedial
+                                        </label>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-sm text-gray-600 mb-2">Pengayaan:</p>
+                                                <textarea id="modul-pengayaan" rows="3" placeholder="Kegiatan untuk siswa yang sudah mencapai tujuan..."
+                                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600 mb-2">Remedial:</p>
+                                                <textarea id="modul-remedial" rows="3" placeholder="Kegiatan untuk siswa yang belum mencapai tujuan..."
+                                                          class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Refleksi Guru -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-comment-dots text-gray-400 mr-1"></i> Refleksi Guru
+                                        </label>
+                                        <textarea id="modul-refleksi" rows="3" placeholder="Pertanyaan refleksi untuk guru setelah pembelajaran:
+1. Apakah tujuan pembelajaran tercapai?
+2. Apa kendala yang dihadapi?
+3. Apa yang perlu diperbaiki?"
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            
+                            <!-- C. LAMPIRAN -->
+                            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                                <button type="button" onclick="toggleSection('section-lampiran')" 
+                                        class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <span class="font-bold text-gray-800">C. LAMPIRAN (Opsional)</span>
+                                    <i class="fas fa-chevron-down text-gray-400" id="icon-section-lampiran"></i>
+                                </button>
+                                <div id="section-lampiran" class="p-6 space-y-4 hidden">
+                                    
+                                    <!-- Materi Ajar -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-book text-gray-400 mr-1"></i> Ringkasan Materi
+                                        </label>
+                                        <textarea id="modul-materi" rows="6" placeholder="Tuliskan ringkasan materi pembelajaran..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- LKPD -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-file-alt text-gray-400 mr-1"></i> Lembar Kerja Peserta Didik (LKPD)
+                                        </label>
+                                        <textarea id="modul-lkpd" rows="4" placeholder="Soal atau tugas untuk dikerjakan siswa..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                    <!-- Rubrik Penilaian -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            <i class="fas fa-list-ol text-gray-400 mr-1"></i> Rubrik/Kriteria Penilaian
+                                        </label>
+                                        <textarea id="modul-rubrik" rows="4" placeholder="Kriteria penilaian untuk asesmen..."
+                                                  class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pai-hijau-500 outline-none auto-resize"></textarea>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            
+                        </form>
+                        
+                        <!-- Tombol Navigasi -->
+                        <div class="mt-6 flex justify-between">
+                            <button type="button" onclick="goToStep(1)" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i> Kembali
+                            </button>
+                            <button type="button" onclick="goToStep(3)" class="px-6 py-3 bg-pai-hijau-600 text-white font-medium rounded-xl hover:bg-pai-hijau-700 transition-colors">
+                                Preview Modul <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+                <!-- ================================================
+                     STEP 3: PREVIEW & SIMPAN
+                     ================================================ -->
+                <div id="step-3-content" class="hidden fade-in">
+                    
+                    <div class="bg-white rounded-2xl shadow-md p-6 mb-6">
+                        
+                        <div class="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                            <div class="flex items-center">
+                                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                                    <i class="fas fa-eye text-green-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">Preview Modul Ajar</h3>
+                                    <p class="text-sm text-gray-500">Periksa modul sebelum menyimpan</p>
+                                </div>
+                            </div>
+                            <div class="flex space-x-3">
+                                <button onclick="goToStep(2)" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                                    <i class="fas fa-edit mr-1"></i> Edit
+                                </button>
+                                <button onclick="cetakModul()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    <i class="fas fa-print mr-1"></i> Cetak
+                                </button>
+                                <button onclick="exportModulPDF()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                    <i class="fas fa-file-pdf mr-1"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Preview Container -->
+                        <div class="bg-gray-100 rounded-xl p-4 overflow-auto" style="max-height: 700px;">
+                            <div id="modul-preview" class="bg-white shadow-lg mx-auto" style="width: 210mm; min-height: 297mm; padding: 20mm;">
+                                <!-- Konten modul akan di-render di sini -->
+                            </div>
+                        </div>
+                        
+                        <!-- Tombol Simpan -->
+                        <div class="mt-6 flex justify-between">
+                            <button type="button" onclick="goToStep(2)" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i> Kembali Edit
+                            </button>
+                            <button type="button" onclick="simpanModul()" class="px-8 py-3 bg-pai-hijau-600 text-white font-bold rounded-xl hover:bg-pai-hijau-700 transition-colors shadow-lg">
+                                <i class="fas fa-save mr-2"></i> Simpan Modul Ajar
+                            </button>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            <!-- Footer -->
+            <footer class="bg-white border-t border-gray-200 px-8 py-4 text-center text-gray-500 text-sm no-print">
+                <p>© 2025 Admin PAI Satu Pintu - Modul Ajar Kurikulum Merdeka</p>
+            </footer>
+            
+        </main>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-8 rounded-2xl text-center">
+            <div class="spinner mx-auto mb-4"></div>
+            <p id="loading-text" class="text-gray-600">Memproses...</p>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/master-cp.js"></script>
+    
+    <!-- ================================================
+         SCRIPT HALAMAN MODUL AJAR
+         ================================================ -->
+    <script>
+        /**
+         * =====================================================
+         * VARIABEL GLOBAL
+         * =====================================================
+         */
+        let profilGuru = null;
+        let dataPerencanaan = null;
+        let tpDipilih = null;  // TP yang sedang dibuat modulnya
+        let currentStep = 1;
+        let modulTersimpan = [];
+        
+        const NAMA_ELEMEN = {
+            'AL_QURAN_HADIS': "Al-Qur'an Hadis",
+            'AKIDAH': 'Akidah',
+            'AKHLAK': 'Akhlak',
+            'FIKIH': 'Fikih',
+            'SPI': 'Sejarah Peradaban Islam'
+        };
+        
+        const PPP_LABELS = {
+            'beriman': 'Beriman, Bertakwa kepada Tuhan YME, dan Berakhlak Mulia',
+            'mandiri': 'Mandiri',
+            'gotong-royong': 'Bergotong Royong',
+            'bernalar-kritis': 'Bernalar Kritis',
+            'kreatif': 'Kreatif',
+            'berkebinekaan': 'Berkebinekaan Global'
+        };
+        
+        /**
+         * =====================================================
+         * INISIALISASI
+         * =====================================================
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthState();
+        });
+        
+        function checkAuthState() {
+            showLoading('Memuat data...');
+            
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    await loadInitialData(user.uid);
+                    hideLoading();
+                } else {
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+        
+        async function loadInitialData(userId) {
+            try {
+                // Load profil
+                const profilDoc = await db.collection('users').doc(userId).get();
+                if (profilDoc.exists) {
+                    profilGuru = profilDoc.data();
+                    document.getElementById('nama-guru-sidebar').textContent = profilGuru.namaLengkap || 'Guru PAI';
+                    
+                    // Populate kelas
+                    const selectKelas = document.getElementById('filter-kelas');
+                    selectKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+                    (profilGuru.kelasAmpu || []).sort((a,b) => a-b).forEach(k => {
+                        selectKelas.innerHTML += `<option value="${k}">Kelas ${k}</option>`;
+                    });
+                }
+                
+                // Load modul tersimpan
+                await loadModulTersimpan(userId);
+                
+            } catch (error) {
+                console.error("❌ Error:", error);
+            }
+        }
+        
+        /**
+         * =====================================================
+         * LOAD MODUL TERSIMPAN
+         * =====================================================
+         */
+        async function loadModulTersimpan(userId) {
+            try {
+                const snapshot = await db.collection('users').doc(userId)
+                    .collection('modul_ajar')
+                    .orderBy('createdAt', 'desc')
+                    .limit(10)
+                    .get();
+                
+                modulTersimpan = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Update badge
+                document.getElementById('badge-modul-count').textContent = `${modulTersimpan.length} Modul Tersimpan`;
+                
+                // Render list
+                renderModulTersimpan();
+                
+            } catch (error) {
+                console.error("❌ Gagal load modul:", error);
+            }
+        }
+        
+        function renderModulTersimpan() {
+            const container = document.getElementById('daftar-modul-tersimpan');
+            
+            if (modulTersimpan.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p>Belum ada modul ajar yang tersimpan</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="space-y-3">
+                    ${modulTersimpan.map(modul => `
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-pai-hijau-100 rounded-lg flex items-center justify-center mr-4">
+                                    <i class="fas fa-book text-pai-hijau-600"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">${modul.judul || 'Modul Ajar'}</p>
+                                    <p class="text-sm text-gray-500">Kelas ${modul.kelas} • ${modul.tpKode}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="viewModul('${modul.id}')" class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg" title="Lihat">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button onclick="editModul('${modul.id}')" class="p-2 text-green-600 hover:bg-green-100 rounded-lg" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteModul('${modul.id}')" class="p-2 text-red-600 hover:bg-red-100 rounded-lg" title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        /**
+         * =====================================================
+         * LOAD TP DARI PERENCANAAN
+         * =====================================================
+         */
+        async function loadTPFromPerencanaan() {
+            const kelas = document.getElementById('filter-kelas').value;
+            const semester = document.getElementById('filter-semester').value;
+            
+            if (!kelas || !semester) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih Filter',
+                    text: 'Silakan pilih kelas dan semester.',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+            
+            showLoading('Memuat TP...');
+            
+            try {
+                const user = auth.currentUser;
+                const docId = `${profilGuru.tahunAjaran}_${semester}_${kelas}`;
+                
+                const doc = await db.collection('users').doc(user.uid)
+                    .collection('perencanaan')
+                    .doc(docId)
+                    .get();
+                
+                if (!doc.exists || !doc.data().tpDipilih || doc.data().tpDipilih.length === 0) {
+                    document.getElementById('daftar-tp-container').innerHTML = `
+                        <div class="text-center py-12 bg-yellow-50 rounded-xl">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 text-5xl mb-4"></i>
+                            <p class="text-yellow-700 font-medium">Belum ada TP di Perencanaan</p>
+                            <p class="text-sm text-yellow-600 mt-2">Silakan buat perencanaan (Prota/Promes) terlebih dahulu.</p>
+                            <a href="perencanaan.html" class="inline-block mt-4 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">
+                                <i class="fas fa-arrow-right mr-2"></i>Buat Perencanaan
+                            </a>
+                        </div>
+                    `;
+                    document.getElementById('btn-next-step1').classList.add('hidden');
+                    hideLoading();
+                    return;
+                }
+                
+                dataPerencanaan = doc.data();
+                renderDaftarTP(dataPerencanaan.tpDipilih);
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error("❌ Error:", error);
+                hideLoading();
+            }
+        }
+        
+        function renderDaftarTP(tpList) {
+            const container = document.getElementById('daftar-tp-container');
+            
+            container.innerHTML = `
+                <p class="text-sm text-gray-500 mb-4">Klik pada TP untuk memilih:</p>
+                <div class="grid grid-cols-1 gap-3">
+                    ${tpList.map((tp, idx) => {
+                        // Cek apakah sudah ada modul
+                        const sudahAdaModul = modulTersimpan.some(m => m.tpKode === tp.kode);
+                        
+                        return `
+                            <div class="tp-select-card border-2 border-gray-200 rounded-xl p-4 ${sudahAdaModul ? 'bg-green-50 border-green-200' : ''}"
+                                 onclick="pilihTP(${idx})" data-idx="${idx}">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-2">
+                                            <span class="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs font-mono mr-2">${tp.kode}</span>
+                                            <span class="text-xs px-2 py-1 rounded-full ${getElemenBadgeClass(tp.elemen)}">${tp.namaElemen || NAMA_ELEMEN[tp.elemen]}</span>
+                                            ${sudahAdaModul ? '<span class="ml-2 text-xs text-green-600"><i class="fas fa-check-circle"></i> Modul ada</span>' : ''}
+                                        </div>
+                                        <p class="text-sm text-gray-700">${tp.deskripsi}</p>
+                                        <p class="text-xs text-gray-400 mt-1">${tp.alokasi_waktu} JP • Bulan ${tp.bulan || '-'}</p>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center tp-checkbox">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            document.getElementById('btn-next-step1').classList.remove('hidden');
+        }
+        
+        function getElemenBadgeClass(elemen) {
+            const classes = {
+                'AL_QURAN_HADIS': 'bg-blue-100 text-blue-700',
+                'AKIDAH': 'bg-green-100 text-green-700',
+                'AKHLAK': 'bg-purple-100 text-purple-700',
+                'FIKIH': 'bg-orange-100 text-orange-700',
+                'SPI': 'bg-red-100 text-red-700'
+            };
+            return classes[elemen] || 'bg-gray-100 text-gray-700';
+        }
+        
+        function pilihTP(idx) {
+            // Toggle selection
+            const cards = document.querySelectorAll('.tp-select-card');
+            cards.forEach((card, i) => {
+                if (i === idx) {
+                    card.classList.toggle('selected');
+                    const checkbox = card.querySelector('.tp-checkbox');
+                    if (card.classList.contains('selected')) {
+                        checkbox.innerHTML = '<i class="fas fa-check text-white text-xs"></i>';
+                        checkbox.classList.add('bg-pai-hijau-500', 'border-pai-hijau-500');
+                        checkbox.classList.remove('border-gray-300');
+                        tpDipilih = dataPerencanaan.tpDipilih[idx];
+                    } else {
+                        checkbox.innerHTML = '';
+                        checkbox.classList.remove('bg-pai-hijau-500', 'border-pai-hijau-500');
+                        checkbox.classList.add('border-gray-300');
+                        tpDipilih = null;
+                    }
+                } else {
+                    card.classList.remove('selected');
+                    const checkbox = card.querySelector('.tp-checkbox');
+                    checkbox.innerHTML = '';
+                    checkbox.classList.remove('bg-pai-hijau-500', 'border-pai-hijau-500');
+                    checkbox.classList.add('border-gray-300');
+                }
+            });
+        }
+        
+        /**
+         * =====================================================
+         * NAVIGASI STEP
+         * =====================================================
+         */
+        function goToStep(step) {
+            // Validasi
+            if (step === 2 && !tpDipilih) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih TP',
+                    text: 'Silakan pilih satu Tujuan Pembelajaran.',
+                    confirmButtonColor: '#16a34a'
+                });
+                return;
+            }
+            
+            if (step === 3) {
+                generatePreview();
+            }
+            
+            // Sembunyikan semua step
+            document.getElementById('step-1-content').classList.add('hidden');
+            document.getElementById('step-2-content').classList.add('hidden');
+            document.getElementById('step-3-content').classList.add('hidden');
+            
+            // Tampilkan step yang dipilih
+            document.getElementById(`step-${step}-content`).classList.remove('hidden');
+            
+            // Update stepper
+            updateStepper(step);
+            
+            // Jika ke step 2, isi form dengan data TP
+            if (step === 2) {
+                fillFormWithTP();
+            }
+            
+            currentStep = step;
+            
+            // Scroll ke atas
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function updateStepper(activeStep) {
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`step-indicator-${i}`);
+                const stepNumber = indicator.querySelector('.step-number');
+                
+                if (i < activeStep) {
+                    indicator.classList.add('completed');
+                    indicator.classList.remove('active');
+                    stepNumber.classList.add('bg-pai-hijau-500');
+                    stepNumber.classList.remove('bg-gray-300');
+                } else if (i === activeStep) {
+                    indicator.classList.add('active');
+                    indicator.classList.remove('completed');
+                    stepNumber.classList.add('bg-pai-hijau-500');
+                    stepNumber.classList.remove('bg-gray-300');
+                } else {
+                    indicator.classList.remove('active', 'completed');
+                    stepNumber.classList.remove('bg-pai-hijau-500');
+                    stepNumber.classList.add('bg-gray-300');
+                }
+            }
+            
+            // Update progress bars
+            document.getElementById('progress-1-2').style.width = activeStep >= 2 ? '100%' : '0%';
+            document.getElementById('progress-2-3').style.width = activeStep >= 3 ? '100%' : '0%';
+        }
+        
+        function fillFormWithTP() {
+            if (!tpDipilih) return;
+            
+            // Info TP
+            document.getElementById('info-tp-dipilih').innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-pai-hijau-600 mr-3 text-xl"></i>
+                    <div>
+                        <p class="font-medium text-pai-hijau-800">${tpDipilih.kode} - ${tpDipilih.namaElemen || NAMA_ELEMEN[tpDipilih.elemen]}</p>
+                        <p class="text-sm text-pai-hijau-600">${tpDipilih.deskripsi}</p>
+                    </div>
+                </div>
+            `;
+            
+            // Auto-fill beberapa field
+            document.getElementById('modul-tujuan').value = tpDipilih.deskripsi;
+            document.getElementById('modul-judul').value = generateJudulModul(tpDipilih);
+            
+            // Auto-fill kegiatan pendahuluan
+            document.getElementById('modul-pendahuluan').value = `1. Guru membuka dengan salam dan mengajak berdoa bersama
+2. Guru menyapa dan mengecek kehadiran peserta didik
+3. Guru menyampaikan tujuan pembelajaran hari ini
+4. Guru memberikan apersepsi terkait materi sebelumnya`;
+
+            // Auto-fill kegiatan penutup
+            document.getElementById('modul-penutup').value = `1. Guru bersama peserta didik menyimpulkan materi pembelajaran
+2. Guru memberikan refleksi tentang pembelajaran hari ini
+3. Guru menyampaikan rencana pembelajaran berikutnya
+4. Guru menutup dengan doa dan salam`;
+
+            // Auto-fill asesmen
+            document.getElementById('modul-asesmen-formatif').value = `• Observasi sikap selama pembelajaran
+• Tanya jawab tentang materi
+• Kuis singkat di akhir pembelajaran`;
+
+            document.getElementById('modul-asesmen-sumatif').value = `• Tes tertulis
+• Penilaian praktik/unjuk kerja
+• Penugasan`;
+            
+            // Default PPP untuk PAI
+            document.querySelector('input[value="beriman"]').checked = true;
+        }
+        
+        function generateJudulModul(tp) {
+            // Generate judul otomatis berdasarkan deskripsi TP
+            const deskripsi = tp.deskripsi;
+            // Ambil bagian penting dari deskripsi
+            const match = deskripsi.match(/mampu\s+(.+)/i);
+            if (match) {
+                return match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            }
+            return deskripsi.substring(0, 50);
+        }
+        
+        /**
+         * =====================================================
+         * TOGGLE SECTION
+         * =====================================================
+         */
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const icon = document.getElementById('icon-' + sectionId);
+            
+            if (section.classList.contains('hidden')) {
+                section.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                section.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        /**
+         * =====================================================
+         * GENERATE PREVIEW
+         * =====================================================
+         */
+        function generatePreview() {
+            const kelas = document.getElementById('filter-kelas').value;
+            const semester = document.getElementById('filter-semester').value;
+            const tahunAjaran = profilGuru?.tahunAjaran?.replace('-', '/') || '-';
+            const namaSekolah = profilGuru?.namaSekolah || '-';
+            const namaGuru = profilGuru?.namaLengkap || '-';
+            
+            // Ambil data form
+            const judul = document.getElementById('modul-judul').value || 'Modul Ajar';
+            const pertemuan = document.getElementById('modul-pertemuan').value || '1';
+            const kompetensiAwal = document.getElementById('modul-kompetensi-awal').value || '-';
+            const sarana = document.getElementById('modul-sarana').value || '-';
+            const target = document.getElementById('modul-target').value;
+            const model = document.getElementById('modul-model').value;
+            
+            // PPP
+            const pppChecked = Array.from(document.querySelectorAll('input[name="ppp"]:checked')).map(cb => PPP_LABELS[cb.value]);
+            const pppText = pppChecked.length > 0 ? pppChecked.join(', ') : '-';
+            
+            // Komponen inti
+            const tujuan = document.getElementById('modul-tujuan').value || '-';
+            const pemahaman = document.getElementById('modul-pemahaman').value || '-';
+            const pertanyaan = document.getElementById('modul-pertanyaan').value || '-';
+            
+            const waktuPendahuluan = document.getElementById('waktu-pendahuluan').value || '10';
+            const waktuInti = document.getElementById('waktu-inti').value || '100';
+            const waktuPenutup = document.getElementById('waktu-penutup').value || '10';
+            
+            const pendahuluan = document.getElementById('modul-pendahuluan').value || '-';
+            const inti = document.getElementById('modul-inti').value || '-';
+            const penutup = document.getElementById('modul-penutup').value || '-';
+            
+            const asesmenFormatif = document.getElementById('modul-asesmen-formatif').value || '-';
+            const asesmenSumatif = document.getElementById('modul-asesmen-sumatif').value || '-';
+            const pengayaan = document.getElementById('modul-pengayaan').value || '-';
+            const remedial = document.getElementById('modul-remedial').value || '-';
+            const refleksi = document.getElementById('modul-refleksi').value || '-';
+            
+            // Lampiran
+            const materi = document.getElementById('modul-materi').value || '';
+            const lkpd = document.getElementById('modul-lkpd').value || '';
+            const rubrik = document.getElementById('modul-rubrik').value || '';
+            
+            const previewHTML = `
+                <div class="modul-dokumen">
+                    <!-- Header -->
+                    <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px double #000; padding-bottom: 20px;">
+                        <h1 style="font-size: 18pt; margin-bottom: 10px;">MODUL AJAR</h1>
+                        <h1 style="font-size: 14pt; margin-bottom: 5px;">PENDIDIKAN AGAMA ISLAM DAN BUDI PEKERTI</h1>
+                        <p style="font-size: 12pt;">${namaSekolah}</p>
+                    </div>
+                    
+                    <!-- Identitas -->
+                    <table style="border: none; margin-bottom: 20px;">
+                        <tr><td style="border: none; width: 150px;">Fase / Kelas</td><td style="border: none;">: ${MASTER_CP_PAI_2025[getFaseByKelas(kelas)]?.nama || '-'} / ${kelas}</td></tr>
+                        <tr><td style="border: none;">Semester</td><td style="border: none;">: ${semester === 'ganjil' ? '1 (Ganjil)' : '2 (Genap)'}</td></tr>
+                        <tr><td style="border: none;">Tahun Pelajaran</td><td style="border: none;">: ${tahunAjaran}</td></tr>
+                        <tr><td style="border: none;">Elemen</td><td style="border: none;">: ${tpDipilih?.namaElemen || NAMA_ELEMEN[tpDipilih?.elemen] || '-'}</td></tr>
+                        <tr><td style="border: none;">Topik</td><td style="border: none;">: ${judul}</td></tr>
+                        <tr><td style="border: none;">Alokasi Waktu</td><td style="border: none;">: ${tpDipilih?.alokasi_waktu || '-'} JP (Pertemuan ke-${pertemuan})</td></tr>
+                        <tr><td style="border: none;">Penyusun</td><td style="border: none;">: ${namaGuru}</td></tr>
+                    </table>
+                    
+                    <!-- A. Informasi Umum -->
+                    <h2 style="background: #f0f0f0; padding: 8px; margin-top: 20px;">A. INFORMASI UMUM</h2>
+                    
+                    <table>
+                        <tr>
+                            <th style="width: 30%;">Komponen</th>
+                            <th>Keterangan</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Kompetensi Awal</strong></td>
+                            <td>${kompetensiAwal.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Profil Pelajar Pancasila</strong></td>
+                            <td>${pppText}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sarana dan Prasarana</strong></td>
+                            <td>${sarana.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Target Peserta Didik</strong></td>
+                            <td>${target === 'reguler' ? 'Peserta didik reguler/tipikal' : target === 'kesulitan' ? 'Peserta didik dengan kesulitan belajar' : 'Peserta didik cerdas istimewa berbakat istimewa'}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Model Pembelajaran</strong></td>
+                            <td>${model === 'tatap-muka' ? 'Tatap Muka' : model === 'pjj-daring' ? 'PJJ Daring' : model === 'pjj-luring' ? 'PJJ Luring' : 'Blended Learning'}</td>
+                        </tr>
+                    </table>
+                    
+                    <!-- B. Komponen Inti -->
+                    <h2 style="background: #f0f0f0; padding: 8px; margin-top: 20px;">B. KOMPONEN INTI</h2>
+                    
+                    <table>
+                        <tr>
+                            <td style="width: 30%;"><strong>Tujuan Pembelajaran</strong></td>
+                            <td>${tujuan.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pemahaman Bermakna</strong></td>
+                            <td>${pemahaman.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pertanyaan Pemantik</strong></td>
+                            <td>${pertanyaan.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 15px;">Kegiatan Pembelajaran</h3>
+                    <table>
+                        <tr>
+                            <th style="width: 20%;">Tahap</th>
+                            <th style="width: 15%;">Waktu</th>
+                            <th>Kegiatan</th>
+                        </tr>
+                        <tr>
+                            <td style="background: #e3f2fd;"><strong>Pendahuluan</strong></td>
+                            <td style="text-align: center;">${waktuPendahuluan} menit</td>
+                            <td>${pendahuluan.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td style="background: #e8f5e9;"><strong>Kegiatan Inti</strong></td>
+                            <td style="text-align: center;">${waktuInti} menit</td>
+                            <td>${inti.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                        <tr>
+                            <td style="background: #fff3e0;"><strong>Penutup</strong></td>
+                            <td style="text-align: center;">${waktuPenutup} menit</td>
+                            <td>${penutup.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 15px;">Asesmen</h3>
+                    <table>
+                        <tr>
+                            <th style="width: 50%;">Asesmen Formatif</th>
+                            <th>Asesmen Sumatif</th>
+                        </tr>
+                        <tr>
+                            <td>${asesmenFormatif.replace(/\n/g, '<br>')}</td>
+                            <td>${asesmenSumatif.replace(/\n/g, '<br>')}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 15px;">Pengayaan dan Remedial</h3>
+                    <table>
+                        <tr>
+                            <th style="width: 50%;">Pengayaan</th>
+                            <th>Remedial</th>
+                        </tr>
+                        <tr>
+                            <td>${pengayaan.replace(/\n/g, '<br>') || '-'}</td>
+                            <td>${remedial.replace(/\n/g, '<br>') || '-'}</td>
+                        </tr>
+                    </table>
+                    
+                    <h3 style="margin-top: 15px;">Refleksi Guru</h3>
+                    <div style="border: 1px solid #000; padding: 10px;">
+                        ${refleksi.replace(/\n/g, '<br>') || '-'}
+                    </div>
+                    
+                    ${materi || lkpd || rubrik ? `
+                        <!-- C. Lampiran -->
+                        <h2 style="background: #f0f0f0; padding: 8px; margin-top: 20px;">C. LAMPIRAN</h2>
+                        
+                        ${materi ? `<h3>Ringkasan Materi</h3><div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">${materi.replace(/\n/g, '<br>')}</div>` : ''}
+                        ${lkpd ? `<h3>Lembar Kerja Peserta Didik (LKPD)</h3><div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">${lkpd.replace(/\n/g, '<br>')}</div>` : ''}
+                        ${rubrik ? `<h3>Rubrik Penilaian</h3><div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">${rubrik.replace(/\n/g, '<br>')}</div>` : ''}
+                    ` : ''}
+                    
+                    <!-- Tanda Tangan -->
+                    <table style="border: none; margin-top: 40px;">
+                        <tr>
+                            <td style="border: none; width: 50%; text-align: center;">
+                                Mengetahui,<br>Kepala Sekolah<br><br><br><br><br>
+                                <u>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</u><br>
+                                NIP. .............................
+                            </td>
+                            <td style="border: none; width: 50%; text-align: center;">
+                                ${profilGuru?.kabupaten || '................'}, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br>
+                                Guru Mata Pelajaran<br><br><br><br><br>
+                                <u>${namaGuru}</u><br>
+                                NIP. ${profilGuru?.nip || '.............................'}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('modul-preview').innerHTML = previewHTML;
+        }
+        
+        /**
+         * =====================================================
+         * SIMPAN MODUL
+         * =====================================================
+         */
+        async function simpanModul() {
+            showLoading('Menyimpan modul...');
+            
+            try {
+                const user = auth.currentUser;
+                const kelas = document.getElementById('filter-kelas').value;
+                const semester = document.getElementById('filter-semester').value;
+                
+                // Kumpulkan data
+                const pppChecked = Array.from(document.querySelectorAll('input[name="ppp"]:checked')).map(cb => cb.value);
+                
+                const dataModul = {
+                    // Identitas
+                    tahunAjaran: profilGuru.tahunAjaran,
+                    kelas: kelas,
+                    semester: semester,
+                    tpKode: tpDipilih.kode,
+                    tpDeskripsi: tpDipilih.deskripsi,
+                    elemen: tpDipilih.elemen,
+                    namaElemen: tpDipilih.namaElemen || NAMA_ELEMEN[tpDipilih.elemen],
+                    
+                    // Informasi Umum
+                    judul: document.getElementById('modul-judul').value,
+                    pertemuan: document.getElementById('modul-pertemuan').value,
+                    kompetensiAwal: document.getElementById('modul-kompetensi-awal').value,
+                    profilPelajarPancasila: pppChecked,
+                    sarana: document.getElementById('modul-sarana').value,
+                    target: document.getElementById('modul-target').value,
+                    model: document.getElementById('modul-model').value,
+                    
+                    // Komponen Inti
+                    tujuan: document.getElementById('modul-tujuan').value,
+                    pemahaman: document.getElementById('modul-pemahaman').value,
+                    pertanyaan: document.getElementById('modul-pertanyaan').value,
+                    waktuPendahuluan: document.getElementById('waktu-pendahuluan').value,
+                    waktuInti: document.getElementById('waktu-inti').value,
+                    waktuPenutup: document.getElementById('waktu-penutup').value,
+                    pendahuluan: document.getElementById('modul-pendahuluan').value,
+                    inti: document.getElementById('modul-inti').value,
+                    penutup: document.getElementById('modul-penutup').value,
+                    asesmenFormatif: document.getElementById('modul-asesmen-formatif').value,
+                    asesmenSumatif: document.getElementById('modul-asesmen-sumatif').value,
+                    pengayaan: document.getElementById('modul-pengayaan').value,
+                    remedial: document.getElementById('modul-remedial').value,
+                    refleksi: document.getElementById('modul-refleksi').value,
+                    
+                    // Lampiran
+                    materi: document.getElementById('modul-materi').value,
+                    lkpd: document.getElementById('modul-lkpd').value,
+                    rubrik: document.getElementById('modul-rubrik').value,
+                    
+                    // Metadata
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Simpan ke Firestore
+                const docRef = await db.collection('users').doc(user.uid)
+                    .collection('modul_ajar')
+                    .add(dataModul);
+                
+                hideLoading();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Modul Berhasil Disimpan!',
+                    text: 'Modul ajar telah tersimpan.',
+                    confirmButtonColor: '#16a34a'
+                }).then(() => {
+                    // Reset dan kembali ke step 1
+                    tpDipilih = null;
+                    goToStep(1);
+                    loadModulTersimpan(user.uid);
+                });
+                
+            } catch (error) {
+                console.error("❌ Error:", error);
+                hideLoading();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal Menyimpan',
+                    text: 'Terjadi kesalahan.',
+                    confirmButtonColor: '#16a34a'
+                });
+            }
+        }
+        
+        /**
+         * =====================================================
+         * VIEW, EDIT, DELETE MODUL
+         * =====================================================
+         */
+        async function viewModul(modulId) {
+            const modul = modulTersimpan.find(m => m.id === modulId);
+            if (!modul) return;
+            
+            tpDipilih = {
+                kode: modul.tpKode,
+                deskripsi: modul.tpDeskripsi,
+                elemen: modul.elemen,
+                namaElemen: modul.namaElemen,
+                alokasi_waktu: modul.waktuPendahuluan ? (parseInt(modul.waktuPendahuluan) + parseInt(modul.waktuInti) + parseInt(modul.waktuPenutup)) / 35 : 4
+            };
+            
+            // Isi form
+            document.getElementById('filter-kelas').value = modul.kelas;
+            document.getElementById('filter-semester').value = modul.semester;
+            
+            document.getElementById('modul-judul').value = modul.judul || '';
+            document.getElementById('modul-pertemuan').value = modul.pertemuan || '';
+            document.getElementById('modul-kompetensi-awal').value = modul.kompetensiAwal || '';
+            document.getElementById('modul-sarana').value = modul.sarana || '';
+            document.getElementById('modul-target').value = modul.target || 'reguler';
+            document.getElementById('modul-model').value = modul.model || 'tatap-muka';
+            
+            // PPP
+            document.querySelectorAll('input[name="ppp"]').forEach(cb => {
+                cb.checked = (modul.profilPelajarPancasila || []).includes(cb.value);
+            });
+            
+            document.getElementById('modul-tujuan').value = modul.tujuan || '';
+            document.getElementById('modul-pemahaman').value = modul.pemahaman || '';
+            document.getElementById('modul-pertanyaan').value = modul.pertanyaan || '';
+            document.getElementById('waktu-pendahuluan').value = modul.waktuPendahuluan || '10';
+            document.getElementById('waktu-inti').value = modul.waktuInti || '100';
+            document.getElementById('waktu-penutup').value = modul.waktuPenutup || '10';
+            document.getElementById('modul-pendahuluan').value = modul.pendahuluan || '';
+            document.getElementById('modul-inti').value = modul.inti || '';
+            document.getElementById('modul-penutup').value = modul.penutup || '';
+            document.getElementById('modul-asesmen-formatif').value = modul.asesmenFormatif || '';
+            document.getElementById('modul-asesmen-sumatif').value = modul.asesmenSumatif || '';
+            document.getElementById('modul-pengayaan').value = modul.pengayaan || '';
+            document.getElementById('modul-remedial').value = modul.remedial || '';
+            document.getElementById('modul-refleksi').value = modul.refleksi || '';
+            document.getElementById('modul-materi').value = modul.materi || '';
+            document.getElementById('modul-lkpd').value = modul.lkpd || '';
+            document.getElementById('modul-rubrik').value = modul.rubrik || '';
+            
+            goToStep(3);
+        }
+        
+        function editModul(modulId) {
+            viewModul(modulId);
+            goToStep(2);
+        }
+        
+        async function deleteModul(modulId) {
+            const result = await Swal.fire({
+                title: 'Hapus Modul?',
+                text: 'Modul yang dihapus tidak dapat dikembalikan.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            });
+            
+            if (result.isConfirmed) {
+                showLoading('Menghapus...');
+                
+                try {
+                    const user = auth.currentUser;
+                    await db.collection('users').doc(user.uid)
+                        .collection('modul_ajar')
+                        .doc(modulId)
+                        .delete();
+                    
+                    hideLoading();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Terhapus!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    
+                    loadModulTersimpan(user.uid);
+                    
+                } catch (error) {
+                    console.error("❌ Error:", error);
+                    hideLoading();
+                }
+            }
+        }
+        
+        /**
+         * =====================================================
+         * CETAK & EXPORT PDF
+         * =====================================================
+         */
+        function cetakModul() {
+            window.print();
+        }
+        
+        async function exportModulPDF() {
+            showLoading('Membuat PDF...');
+            
+            try {
+                const element = document.getElementById('modul-preview');
+                const judul = document.getElementById('modul-judul').value || 'Modul_Ajar';
+                const kelas = document.getElementById('filter-kelas').value;
+                
+                const opt = {
+                    margin: 10,
+                    filename: `Modul_Ajar_Kelas${kelas}_${judul.replace(/\s+/g, '_')}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                await html2pdf().set(opt).from(element).save();
+                
+                hideLoading();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'PDF Berhasil!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                
+            } catch (error) {
+                console.error("❌ Error:", error);
+                hideLoading();
+            }
+        }
+        
+        /**
+         * =====================================================
+         * LOGOUT & HELPERS
+         * =====================================================
+         */
+        async function logoutUser() {
+            const result = await Swal.fire({
+                title: 'Keluar?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal'
+            });
+            if (result.isConfirmed) {
+                await auth.signOut();
+                window.location.href = 'index.html';
+            }
+        }
+        
+        function showLoading(text = 'Memproses...') {
+            document.getElementById('loading-text').textContent = text;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+    </script>
+    
+</body>
+</html>
