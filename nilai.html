@@ -281,8 +281,8 @@
                             </div>
                             <div class="flex items-center space-x-3">
                                 <div>
-                                    <label class="text-sm text-gray-600 mr-2">KKM:</label>
-                                    <input type="number" id="input-kkm" value="75" min="0" max="100"
+                                    <label class="text-sm text-gray-600 mr-2">KKTP:</label>
+                                    <input type="number" id="input-KKTP" value="75" min="0" max="100"
                                            class="w-16 px-3 py-2 border border-gray-300 rounded-lg text-center">
                                 </div>
                             </div>
@@ -293,7 +293,7 @@
                             <span class="text-gray-600">Keterangan:</span>
                             <span class="flex items-center">
                                 <span class="w-4 h-4 bg-red-100 border border-red-400 rounded mr-1"></span>
-                                <span>Di bawah KKM</span>
+                                <span>Di bawah KKTP</span>
                             </span>
                             <span class="flex items-center">
                                 <span class="w-4 h-4 bg-green-100 border border-green-400 rounded mr-1"></span>
@@ -821,7 +821,7 @@
          */
         function renderTabelInputNilai() {
             const tbody = document.getElementById('tabel-input-nilai');
-            const kkm = parseInt(document.getElementById('input-kkm').value) || 75;
+            const KKTP = parseInt(document.getElementById('input-KKTP').value) || 75;
             const jenis = currentJenis;
             
             if (daftarSiswa.length === 0) {
@@ -876,7 +876,7 @@
                                    onchange="updateNilai('${siswa.id}', 'nilai1', this.value)"
                                    onkeydown="handleKeyNav(event, ${idx}, 1)"
                                    id="nilai-${siswa.id}-1"
-                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n1, kkm)}">
+                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n1, KKTP)}">
                         </td>
                         <td class="border border-gray-200 px-2 py-2 text-center ${!showNilai2 ? 'hidden' : ''}">
                             <input type="number" 
@@ -885,7 +885,7 @@
                                    onchange="updateNilai('${siswa.id}', 'nilai2', this.value)"
                                    onkeydown="handleKeyNav(event, ${idx}, 2)"
                                    id="nilai-${siswa.id}-2"
-                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n2, kkm)}">
+                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n2, KKTP)}">
                         </td>
                         <td class="border border-gray-200 px-2 py-2 text-center ${!showNilai3 ? 'hidden' : ''}">
                             <input type="number" 
@@ -894,7 +894,7 @@
                                    onchange="updateNilai('${siswa.id}', 'nilai3', this.value)"
                                    onkeydown="handleKeyNav(event, ${idx}, 3)"
                                    id="nilai-${siswa.id}-3"
-                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n3, kkm)}">
+                                   class="nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(n3, KKTP)}">
                         </td>
                         <td class="border border-gray-200 px-4 py-2 text-center bg-blue-50 font-bold" id="rata-${siswa.id}">
                             ${rataRata}
@@ -909,10 +909,10 @@
             }).join('');
         }
         
-        function getNilaiClass(nilai, kkm) {
+        function getNilaiClass(nilai, KKTP) {
             if (nilai === '' || isNaN(nilai)) return '';
             const n = parseInt(nilai);
-            if (n < kkm) return 'nilai-rendah';
+            if (n < KKTP) return 'nilai-rendah';
             if (n >= 90) return 'nilai-tinggi';
             return '';
         }
@@ -936,9 +936,9 @@
             dataNilai[siswaId][key] = value ? parseInt(value) : '';
             
             // Update warna input
-            const kkm = parseInt(document.getElementById('input-kkm').value) || 75;
+            const KKTP = parseInt(document.getElementById('input-KKTP').value) || 75;
             const input = document.getElementById(`nilai-${siswaId}-${key.replace('nilai', '')}`);
-            input.className = `nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(value, kkm)}`;
+            input.className = `nilai-input px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pai-hijau-500 outline-none ${getNilaiClass(value, KKTP)}`;
             
             // Hitung ulang rata-rata
             hitungRataRata(siswaId);
@@ -1028,7 +1028,7 @@
                         kelas: currentKelas,
                         jenis: currentJenis,
                         data: dataNilai,
-                        kkm: parseInt(document.getElementById('input-kkm').value) || 75,
+                        KKTP: parseInt(document.getElementById('input-KKTP').value) || 75,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
                 
@@ -1115,7 +1115,7 @@
         
         function renderRekapNilai(semuaNilai) {
             const tbody = document.getElementById('tabel-rekap-nilai');
-            const kkm = parseInt(document.getElementById('input-kkm').value) || 75;
+            const KKTP = parseInt(document.getElementById('input-KKTP').value) || 75;
             
             let totalNilai = 0;
             let countNilai = 0;
@@ -1154,12 +1154,12 @@
                 if (nilaiAkhir > 0) {
                     totalNilai += nilaiAkhir;
                     countNilai++;
-                    if (nilaiAkhir >= kkm) tuntas++;
+                    if (nilaiAkhir >= KKTP) tuntas++;
                     else tidakTuntas++;
                 }
                 
-                const ketuntasan = nilaiAkhir >= kkm ? 'Tuntas' : 'Remedi';
-                const ketClass = nilaiAkhir >= kkm ? 'text-green-600' : 'text-red-600';
+                const ketuntasan = nilaiAkhir >= KKTP ? 'Tuntas' : 'Remedi';
+                const ketClass = nilaiAkhir >= KKTP ? 'text-green-600' : 'text-red-600';
                 
                 return `
                     <tr class="hover:bg-gray-50">
@@ -1212,7 +1212,7 @@
                 return;
             }
             
-            const kkm = parseInt(document.getElementById('input-kkm').value) || 75;
+            const KKTP = parseInt(document.getElementById('input-KKTP').value) || 75;
             
             // Kumpulkan semua nilai akhir
             const nilaiAkhirArr = [];
@@ -1234,7 +1234,7 @@
                     else if (predikat === 'C') countC++;
                     else countD++;
                     
-                    if (avg < kkm) {
+                    if (avg < KKTP) {
                         siswaRemedi.push({ nama: siswa.nama, nilai: avg.toFixed(0) });
                     }
                 }
@@ -1417,4 +1417,5 @@
     </script>
     
 </body>
+
 </html>
