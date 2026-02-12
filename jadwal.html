@@ -124,12 +124,12 @@
                 </div>
             </div>
             
-            <div class="flex gap-2">
-                <button onclick="openClassModal()" class="btn btn-outline">
-                    + Tambah Kelas
+            <div class="flex gap-2 flex-wrap">
+                <button onclick="openClassModal()" class="btn btn-outline text-sm">
+                    + Kelas
                 </button>
-                <button onclick="openScheduleModal()" class="btn btn-primary">
-                    + Tambah Jadwal
+                <button onclick="openScheduleModal()" class="btn btn-primary text-sm">
+                    + Jadwal
                 </button>
             </div>
         </header>
@@ -139,7 +139,7 @@
             
             <!-- Tabs -->
             <div class="card mb-6">
-                <div class="tabs border-b-0 px-4 pt-4">
+                <div class="tabs border-b-0 px-4 pt-4 overflow-x-auto">
                     <button onclick="switchJadwalTab('weekly')" id="tabWeekly" class="tab-item active">
                         📅 Jadwal Mingguan
                     </button>
@@ -149,23 +149,32 @@
                     <button onclick="switchJadwalTab('students')" id="tabStudents" class="tab-item">
                         👨‍🎓 Daftar Siswa
                     </button>
+                    <button onclick="switchJadwalTab('settings')" id="tabSettings" class="tab-item">
+                        ⚙️ Pengaturan Jam
+                    </button>
                 </div>
             </div>
 
             <!-- Tab Content: Jadwal Mingguan -->
             <div id="contentWeekly" class="tab-content active">
                 <div class="card">
-                    <div class="card-header flex items-center justify-between">
+                    <div class="card-header flex items-center justify-between flex-wrap gap-2">
                         <h3 class="font-bold text-gray-800">📅 Jadwal Mengajar Mingguan</h3>
-                        <button onclick="printSchedule()" class="btn btn-outline text-sm">
-                            🖨️ Cetak
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="openTimeSettingsModal()" class="btn btn-outline text-sm">
+                                ⚙️ Atur Jam
+                            </button>
+                            <button onclick="printSchedule()" class="btn btn-outline text-sm">
+                                🖨️ Cetak
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body overflow-x-auto">
                         <table class="data-table" id="weeklyScheduleTable">
                             <thead>
                                 <tr>
-                                    <th class="w-20">Jam</th>
+                                    <th class="w-12">Jam</th>
+                                    <th class="w-24">Waktu</th>
                                     <th>Senin</th>
                                     <th>Selasa</th>
                                     <th>Rabu</th>
@@ -196,9 +205,6 @@
                             <div class="text-center py-8 text-gray-500 col-span-full">
                                 <span class="text-4xl block mb-2">🏫</span>
                                 <p>Belum ada kelas</p>
-                                <button onclick="openClassModal()" class="text-pai-green hover:underline text-sm mt-2">
-                                    + Tambah Kelas Baru
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -208,19 +214,19 @@
             <!-- Tab Content: Daftar Siswa -->
             <div id="contentStudents" class="tab-content">
                 <div class="card">
-                    <div class="card-header flex items-center justify-between">
+                    <div class="card-header flex items-center justify-between flex-wrap gap-2">
                         <div class="flex items-center gap-4 flex-wrap">
                             <h3 class="font-bold text-gray-800">👨‍🎓 Daftar Siswa</h3>
                             <select id="filterClass" onchange="filterStudentsByClass()" class="form-select w-auto text-sm">
                                 <option value="">Semua Kelas</option>
                             </select>
                         </div>
-                        <div class="flex gap-2 flex-wrap">
+                        <div class="flex gap-2">
                             <button onclick="openImportModal()" class="btn btn-outline text-sm">
                                 📥 Import
                             </button>
                             <button onclick="openStudentModal()" class="btn btn-primary text-sm">
-                                + Tambah Siswa
+                                + Siswa
                             </button>
                         </div>
                     </div>
@@ -246,6 +252,67 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Content: Pengaturan Jam -->
+            <div id="contentSettings" class="tab-content">
+                <div class="card">
+                    <div class="card-header flex items-center justify-between">
+                        <h3 class="font-bold text-gray-800">⚙️ Pengaturan Jam Pelajaran</h3>
+                        <div class="flex gap-2">
+                            <button onclick="resetToDefaultTimeSlots()" class="btn btn-outline text-sm">
+                                🔄 Reset Default
+                            </button>
+                            <button onclick="addNewTimeSlot()" class="btn btn-primary text-sm">
+                                + Tambah Jam
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Info -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <p class="text-blue-800 text-sm">
+                                <strong>ℹ️ Petunjuk:</strong> Atur jam pelajaran sesuai jadwal sekolah Anda. 
+                                Tandai sebagai "Istirahat" untuk jam istirahat. Drag & drop untuk mengubah urutan.
+                            </p>
+                        </div>
+                        
+                        <!-- Time Slots List -->
+                        <div id="timeSlotsContainer" class="space-y-3">
+                            <!-- Will be generated by JavaScript -->
+                        </div>
+                        
+                        <!-- Save Button -->
+                        <div class="mt-6 pt-4 border-t flex justify-end gap-3">
+                            <button onclick="saveTimeSlots()" class="btn btn-primary">
+                                💾 Simpan Pengaturan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Templates -->
+                <div class="card mt-6">
+                    <div class="card-header">
+                        <h3 class="font-bold text-gray-800">📋 Template Cepat</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button onclick="applyTemplate('sd-reguler')" class="p-4 border rounded-xl hover:border-pai-green hover:bg-pai-light transition-all text-left">
+                                <div class="font-bold text-gray-800 mb-1">🏫 SD Reguler</div>
+                                <p class="text-sm text-gray-500">8 JP @ 35 menit, istirahat jam ke-4 & ke-6</p>
+                            </button>
+                            <button onclick="applyTemplate('sd-fullday')" class="p-4 border rounded-xl hover:border-pai-green hover:bg-pai-light transition-all text-left">
+                                <div class="font-bold text-gray-800 mb-1">🏫 SD Full Day</div>
+                                <p class="text-sm text-gray-500">10 JP @ 35 menit, 2x istirahat + makan siang</p>
+                            </button>
+                            <button onclick="applyTemplate('mi')" class="p-4 border rounded-xl hover:border-pai-green hover:bg-pai-light transition-all text-left">
+                                <div class="font-bold text-gray-800 mb-1">🕌 MI/Madrasah</div>
+                                <p class="text-sm text-gray-500">10 JP @ 35 menit, istirahat & sholat Dhuha</p>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -285,15 +352,12 @@
                         </select>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="form-group">
-                            <label class="form-label">Jam Mulai *</label>
-                            <input type="time" id="scheduleStart" class="form-input" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Jam Selesai *</label>
-                            <input type="time" id="scheduleEnd" class="form-input" required>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label">Jam Pelajaran *</label>
+                        <select id="scheduleTimeSlot" class="form-select" required>
+                            <option value="">Pilih jam</option>
+                            <!-- Will be populated from timeSlots -->
+                        </select>
                     </div>
                     
                     <div class="form-group">
@@ -432,7 +496,7 @@
         </div>
     </div>
     
-    <!-- Modal Import Siswa (UPDATED - Support Google Sheets) -->
+    <!-- Modal Import Siswa -->
     <div id="importModal" class="modal-overlay">
         <div class="modal-content max-w-2xl">
             <div class="modal-header">
@@ -445,32 +509,28 @@
                     <!-- Tabs Import -->
                     <div class="flex border-b">
                         <button onclick="switchImportTab('url')" id="tabImportUrl" class="px-4 py-2 border-b-2 border-pai-green text-pai-green font-medium">
-                            🔗 Dari Google Sheets
+                            🔗 Google Sheets
                         </button>
                         <button onclick="switchImportTab('file')" id="tabImportFile" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
                             📄 Upload File
                         </button>
                     </div>
                     
-                    <!-- Tab: Import dari URL Google Sheets -->
+                    <!-- Tab: Import dari URL -->
                     <div id="contentImportUrl" class="space-y-4">
                         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h4 class="font-semibold text-blue-800 mb-2">📋 Cara Mendapatkan Link CSV dari Google Sheets:</h4>
+                            <h4 class="font-semibold text-blue-800 mb-2">📋 Cara Import dari Google Sheets:</h4>
                             <ol class="text-blue-700 text-sm space-y-1 list-decimal list-inside">
-                                <li>Buka Google Spreadsheet Anda</li>
-                                <li>Klik <strong>File</strong> → <strong>Share</strong> → <strong>Publish to web</strong></li>
-                                <li>Pilih sheet yang berisi data siswa</li>
-                                <li>Pilih format <strong>Comma-separated values (.csv)</strong></li>
-                                <li>Klik <strong>Publish</strong> dan copy link yang muncul</li>
+                                <li>Buka Google Spreadsheet → <strong>File</strong> → <strong>Share</strong> → <strong>Publish to web</strong></li>
+                                <li>Pilih sheet & format <strong>CSV</strong></li>
+                                <li>Klik <strong>Publish</strong> dan copy link</li>
                             </ol>
                         </div>
                         
                         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <h4 class="font-semibold text-yellow-800 mb-2">📝 Format Kolom yang Diperlukan:</h4>
-                            <p class="text-yellow-700 text-sm">
-                                <code class="bg-yellow-100 px-1 rounded">NIS, Nama Lengkap, Jenis Kelamin (L/P), Tempat Lahir, Tanggal Lahir, Nama Orang Tua</code>
+                            <p class="text-yellow-800 text-sm">
+                                <strong>Format Kolom:</strong> NIS, Nama Lengkap, Jenis Kelamin (L/P), Tempat Lahir, Tanggal Lahir, Nama Orang Tua
                             </p>
-                            <p class="text-yellow-600 text-xs mt-2">* Baris pertama harus berisi header kolom</p>
                         </div>
                         
                         <div class="form-group">
@@ -493,17 +553,8 @@
                     
                     <!-- Tab: Import dari File -->
                     <div id="contentImportFile" class="space-y-4 hidden">
-                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                            <p class="text-green-800 text-sm">
-                                <strong>ℹ️ Petunjuk:</strong><br>
-                                1. Download template Excel/CSV<br>
-                                2. Isi data siswa sesuai format<br>
-                                3. Upload file yang sudah diisi
-                            </p>
-                        </div>
-                        
                         <button onclick="downloadTemplate()" class="btn btn-outline w-full">
-                            📥 Download Template Excel/CSV
+                            📥 Download Template CSV
                         </button>
                         
                         <div class="form-group">
@@ -514,33 +565,29 @@
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Upload File CSV/Excel *</label>
-                            <input type="file" id="importFile" accept=".csv,.xlsx,.xls" class="form-input" onchange="previewFileImport()">
+                            <label class="form-label">Upload File CSV *</label>
+                            <input type="file" id="importFile" accept=".csv" class="form-input" onchange="previewFileImport()">
                         </div>
                     </div>
                     
-                    <!-- Preview Data -->
+                    <!-- Preview -->
                     <div id="importPreview" class="hidden">
                         <div class="flex items-center justify-between mb-2">
-                            <h4 class="font-semibold text-gray-800">📋 Preview Data (<span id="previewCount">0</span> siswa)</h4>
-                            <button onclick="clearPreview()" class="text-red-500 hover:text-red-700 text-sm">✕ Hapus Preview</button>
+                            <h4 class="font-semibold">📋 Preview (<span id="previewCount">0</span> siswa)</h4>
+                            <button onclick="clearPreview()" class="text-red-500 text-sm">✕ Hapus</button>
                         </div>
-                        <div class="border rounded-lg overflow-hidden">
-                            <div class="max-h-60 overflow-y-auto">
-                                <table class="w-full text-sm">
-                                    <thead class="bg-gray-100 sticky top-0">
-                                        <tr>
-                                            <th class="p-2 text-left">No</th>
-                                            <th class="p-2 text-left">NIS</th>
-                                            <th class="p-2 text-left">Nama</th>
-                                            <th class="p-2 text-left">L/P</th>
-                                            <th class="p-2 text-left">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="previewTableBody">
-                                    </tbody>
-                                </table>
-                            </div>
+                        <div class="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-100 sticky top-0">
+                                    <tr>
+                                        <th class="p-2 text-left">No</th>
+                                        <th class="p-2 text-left">NIS</th>
+                                        <th class="p-2 text-left">Nama</th>
+                                        <th class="p-2 text-left">L/P</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="previewTableBody"></tbody>
+                            </table>
                         </div>
                     </div>
                     
@@ -551,6 +598,37 @@
                 <button type="button" onclick="processImport()" id="btnProcessImport" class="btn btn-primary" disabled>
                     📥 Import <span id="importCountBtn">0</span> Siswa
                 </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Pengaturan Jam (Quick Access) -->
+    <div id="timeSettingsModal" class="modal-overlay">
+        <div class="modal-content max-w-2xl">
+            <div class="modal-header">
+                <h3 class="font-bold text-lg">⚙️ Pengaturan Jam Pelajaran</h3>
+                <button onclick="closeTimeSettingsModal()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <p class="text-blue-800 text-sm">
+                        Atur jam pelajaran dan istirahat. Perubahan akan diterapkan pada jadwal mingguan.
+                    </p>
+                </div>
+                
+                <div id="modalTimeSlotsContainer" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Will be generated by JavaScript -->
+                </div>
+                
+                <div class="mt-4 flex gap-2">
+                    <button onclick="addNewTimeSlotModal()" class="btn btn-outline flex-1">
+                        + Tambah Jam
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="resetToDefaultTimeSlots()" class="btn btn-secondary">🔄 Reset</button>
+                <button type="button" onclick="saveTimeSlotsAndClose()" class="btn btn-primary">💾 Simpan</button>
             </div>
         </div>
     </div>
