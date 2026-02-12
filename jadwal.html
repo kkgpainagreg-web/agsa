@@ -22,100 +22,92 @@
 </head>
 <body class="bg-gray-100">
     
-<!-- SIDEBAR - Template untuk semua halaman -->
-<aside id="sidebar" class="sidebar">
-    <!-- Header Logo - Fixed -->
-    <div class="p-5 border-b border-green-700 flex-shrink-0">
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-                <span class="text-2xl">🕌</span>
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+        <div class="p-5 border-b border-green-700 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                    <span class="text-2xl">🕌</span>
+                </div>
+                <div>
+                    <h1 class="text-white font-bold text-lg">PAI Super App</h1>
+                    <p class="text-green-300 text-xs">Admin Dashboard</p>
+                </div>
             </div>
-            <div>
-                <h1 class="text-white font-bold text-lg">PAI Super App</h1>
-                <p class="text-green-300 text-xs">Admin Dashboard</p>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4 sidebar-nav">
+            <div class="px-4 mb-2">
+                <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Menu Utama</span>
+            </div>
+            
+            <a href="dashboard.html" class="sidebar-menu-item">
+                <span class="menu-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="profil.html" class="sidebar-menu-item">
+                <span class="menu-icon">👤</span>
+                <span>Profil</span>
+            </a>
+            
+            <a href="kalender.html" class="sidebar-menu-item">
+                <span class="menu-icon">📅</span>
+                <span>Kalender Akademik</span>
+            </a>
+            
+            <a href="jadwal.html" class="sidebar-menu-item active">
+                <span class="menu-icon">🕐</span>
+                <span>Jadwal Mengajar</span>
+            </a>
+            
+            <div class="px-4 mt-6 mb-2">
+                <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Akademik</span>
+            </div>
+            
+            <a href="absensi.html" class="sidebar-menu-item">
+                <span class="menu-icon">✅</span>
+                <span>Absensi Siswa</span>
+            </a>
+            
+            <a href="nilai.html" class="sidebar-menu-item">
+                <span class="menu-icon">📝</span>
+                <span>Daftar Nilai</span>
+            </a>
+            
+            <a href="jurnal.html" class="sidebar-menu-item">
+                <span class="menu-icon">📖</span>
+                <span>Jurnal Pembelajaran</span>
+            </a>
+            
+            <a href="bank-soal.html" class="sidebar-menu-item">
+                <span class="menu-icon">❓</span>
+                <span>Bank Soal</span>
+            </a>
+            
+            <div class="px-4 mt-6 mb-2">
+                <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Generator</span>
+            </div>
+            
+            <a href="generator.html" class="sidebar-menu-item">
+                <span class="menu-icon">⚡</span>
+                <span>Generator Dokumen</span>
+            </a>
+            
+            <div class="h-24"></div>
+        </nav>
+        
+        <div class="flex-shrink-0 p-4 border-t border-green-700 bg-gradient-to-t from-green-900">
+            <div class="flex items-center gap-3">
+                <div id="sidebarAvatar" class="w-10 h-10 bg-pai-gold rounded-full flex items-center justify-center text-lg font-bold">G</div>
+                <div class="flex-1 min-w-0">
+                    <p id="sidebarName" class="text-white font-medium truncate">Loading...</p>
+                    <p id="sidebarEmail" class="text-green-300 text-xs truncate">loading@email.com</p>
+                </div>
+                <button onclick="logout()" class="text-green-300 hover:text-white transition-colors" title="Logout">🚪</button>
             </div>
         </div>
-    </div>
-    
-    <!-- Scrollable Navigation -->
-    <nav class="flex-1 overflow-y-auto py-4 sidebar-nav">
-        <div class="px-4 mb-2">
-            <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Menu Utama</span>
-        </div>
-        
-        <a href="dashboard.html" class="sidebar-menu-item">
-            <span class="menu-icon">📊</span>
-            <span>Dashboard</span>
-        </a>
-        
-        <a href="profil.html" class="sidebar-menu-item">
-            <span class="menu-icon">👤</span>
-            <span>Profil</span>
-        </a>
-        
-        <a href="kalender.html" class="sidebar-menu-item">
-            <span class="menu-icon">📅</span>
-            <span>Kalender Akademik</span>
-        </a>
-        
-        <a href="jadwal.html" class="sidebar-menu-item">
-            <span class="menu-icon">🕐</span>
-            <span>Jadwal Mengajar</span>
-        </a>
-        
-        <div class="px-4 mt-6 mb-2">
-            <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Akademik</span>
-        </div>
-        
-        <a href="absensi.html" class="sidebar-menu-item">
-            <span class="menu-icon">✅</span>
-            <span>Absensi Siswa</span>
-        </a>
-        
-        <a href="nilai.html" class="sidebar-menu-item">
-            <span class="menu-icon">📝</span>
-            <span>Daftar Nilai</span>
-        </a>
-        
-        <a href="jurnal.html" class="sidebar-menu-item">
-            <span class="menu-icon">📖</span>
-            <span>Jurnal Pembelajaran</span>
-        </a>
-        
-        <a href="bank-soal.html" class="sidebar-menu-item">
-            <span class="menu-icon">❓</span>
-            <span>Bank Soal</span>
-        </a>
-        
-        <div class="px-4 mt-6 mb-2">
-            <span class="text-green-300 text-xs font-semibold uppercase tracking-wider">Generator</span>
-        </div>
-        
-        <a href="generator.html" class="sidebar-menu-item">
-            <span class="menu-icon">⚡</span>
-            <span>Generator Dokumen</span>
-        </a>
-        
-        <!-- Spacer -->
-        <div class="h-24"></div>
-    </nav>
-    
-    <!-- User Info - Fixed at bottom -->
-    <div class="flex-shrink-0 p-4 border-t border-green-700 bg-gradient-to-t from-green-900">
-        <div class="flex items-center gap-3">
-            <div id="sidebarAvatar" class="w-10 h-10 bg-pai-gold rounded-full flex items-center justify-center text-lg font-bold">
-                G
-            </div>
-            <div class="flex-1 min-w-0">
-                <p id="sidebarName" class="text-white font-medium truncate">Loading...</p>
-                <p id="sidebarEmail" class="text-green-300 text-xs truncate">loading@email.com</p>
-            </div>
-            <button onclick="logout()" class="text-green-300 hover:text-white transition-colors" title="Logout">
-                🚪
-            </button>
-        </div>
-    </div>
-</aside>
+    </aside>
     
     <!-- MAIN CONTENT -->
     <main class="main-content">
@@ -159,6 +151,7 @@
                     </button>
                 </div>
             </div>
+
             <!-- Tab Content: Jadwal Mingguan -->
             <div id="contentWeekly" class="tab-content active">
                 <div class="card">
@@ -200,7 +193,6 @@
                     </div>
                     <div class="card-body">
                         <div id="classesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <!-- Will be generated by JavaScript -->
                             <div class="text-center py-8 text-gray-500 col-span-full">
                                 <span class="text-4xl block mb-2">🏫</span>
                                 <p>Belum ada kelas</p>
@@ -217,13 +209,13 @@
             <div id="contentStudents" class="tab-content">
                 <div class="card">
                     <div class="card-header flex items-center justify-between">
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-4 flex-wrap">
                             <h3 class="font-bold text-gray-800">👨‍🎓 Daftar Siswa</h3>
-                            <select id="filterClass" onchange="filterStudentsByClass()" class="form-select w-auto">
+                            <select id="filterClass" onchange="filterStudentsByClass()" class="form-select w-auto text-sm">
                                 <option value="">Semua Kelas</option>
                             </select>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
                             <button onclick="openImportModal()" class="btn btn-outline text-sm">
                                 📥 Import
                             </button>
@@ -440,51 +432,134 @@
         </div>
     </div>
     
-    <!-- Modal Import Siswa -->
+    <!-- Modal Import Siswa (UPDATED - Support Google Sheets) -->
     <div id="importModal" class="modal-overlay">
-        <div class="modal-content max-w-lg">
+        <div class="modal-content max-w-2xl">
             <div class="modal-header">
-                <h3 class="font-bold text-lg">Import Data Siswa</h3>
+                <h3 class="font-bold text-lg">📥 Import Data Siswa</h3>
                 <button onclick="closeImportModal()" class="text-gray-500 hover:text-gray-700 text-xl">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="space-y-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p class="text-blue-800 text-sm">
-                            <strong>ℹ️ Petunjuk:</strong><br>
-                            1. Download template Excel/CSV<br>
-                            2. Isi data siswa sesuai format<br>
-                            3. Upload file yang sudah diisi
-                        </p>
+                <div class="space-y-6">
+                    
+                    <!-- Tabs Import -->
+                    <div class="flex border-b">
+                        <button onclick="switchImportTab('url')" id="tabImportUrl" class="px-4 py-2 border-b-2 border-pai-green text-pai-green font-medium">
+                            🔗 Dari Google Sheets
+                        </button>
+                        <button onclick="switchImportTab('file')" id="tabImportFile" class="px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                            📄 Upload File
+                        </button>
                     </div>
                     
-                    <button onclick="downloadTemplate()" class="btn btn-outline w-full">
-                        📥 Download Template Excel
-                    </button>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Pilih Kelas Tujuan *</label>
-                        <select id="importClass" class="form-select">
-                            <option value="">Pilih kelas</option>
-                        </select>
+                    <!-- Tab: Import dari URL Google Sheets -->
+                    <div id="contentImportUrl" class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-800 mb-2">📋 Cara Mendapatkan Link CSV dari Google Sheets:</h4>
+                            <ol class="text-blue-700 text-sm space-y-1 list-decimal list-inside">
+                                <li>Buka Google Spreadsheet Anda</li>
+                                <li>Klik <strong>File</strong> → <strong>Share</strong> → <strong>Publish to web</strong></li>
+                                <li>Pilih sheet yang berisi data siswa</li>
+                                <li>Pilih format <strong>Comma-separated values (.csv)</strong></li>
+                                <li>Klik <strong>Publish</strong> dan copy link yang muncul</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-yellow-800 mb-2">📝 Format Kolom yang Diperlukan:</h4>
+                            <p class="text-yellow-700 text-sm">
+                                <code class="bg-yellow-100 px-1 rounded">NIS, Nama Lengkap, Jenis Kelamin (L/P), Tempat Lahir, Tanggal Lahir, Nama Orang Tua</code>
+                            </p>
+                            <p class="text-yellow-600 text-xs mt-2">* Baris pertama harus berisi header kolom</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Pilih Kelas Tujuan *</label>
+                            <select id="importUrlClass" class="form-select">
+                                <option value="">Pilih kelas</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">URL Google Sheets (CSV) *</label>
+                            <input type="url" id="importUrl" class="form-input" 
+                                placeholder="https://docs.google.com/spreadsheets/d/e/xxxxx/pub?output=csv">
+                        </div>
+                        
+                        <button type="button" onclick="fetchFromGoogleSheets()" class="btn btn-outline w-full">
+                            🔍 Ambil & Preview Data
+                        </button>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="form-label">Upload File *</label>
-                        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" class="form-input">
-                    </div>
-                    
-                    <div id="importPreview" class="hidden">
-                        <h4 class="font-medium mb-2">Preview Data:</h4>
-                        <div class="max-h-40 overflow-y-auto border rounded-lg p-2 text-sm" id="importPreviewContent">
+                    <!-- Tab: Import dari File -->
+                    <div id="contentImportFile" class="space-y-4 hidden">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <p class="text-green-800 text-sm">
+                                <strong>ℹ️ Petunjuk:</strong><br>
+                                1. Download template Excel/CSV<br>
+                                2. Isi data siswa sesuai format<br>
+                                3. Upload file yang sudah diisi
+                            </p>
+                        </div>
+                        
+                        <button onclick="downloadTemplate()" class="btn btn-outline w-full">
+                            📥 Download Template Excel/CSV
+                        </button>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Pilih Kelas Tujuan *</label>
+                            <select id="importFileClass" class="form-select">
+                                <option value="">Pilih kelas</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Upload File CSV/Excel *</label>
+                            <input type="file" id="importFile" accept=".csv,.xlsx,.xls" class="form-input" onchange="previewFileImport()">
                         </div>
                     </div>
+                    
+                    <!-- Preview Data -->
+                    <div id="importPreview" class="hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">📋 Preview Data (<span id="previewCount">0</span> siswa)</h4>
+                            <button onclick="clearPreview()" class="text-red-500 hover:text-red-700 text-sm">✕ Hapus Preview</button>
+                        </div>
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="max-h-60 overflow-y-auto">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-100 sticky top-0">
+                                        <tr>
+                                            <th class="p-2 text-left">No</th>
+                                            <th class="p-2 text-left">NIS</th>
+                                            <th class="p-2 text-left">Nama</th>
+                                            <th class="p-2 text-left">L/P</th>
+                                            <th class="p-2 text-left">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="previewTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" onclick="closeImportModal()" class="btn btn-secondary">Batal</button>
-                <button type="button" onclick="processImport()" class="btn btn-primary">📥 Import</button>
+                <button type="button" onclick="processImport()" id="btnProcessImport" class="btn btn-primary" disabled>
+                    📥 Import <span id="importCountBtn">0</span> Siswa
+                </button>
             </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 flex flex-col items-center gap-4">
+            <div class="loader"></div>
+            <p id="loadingText" class="text-gray-700">Memproses...</p>
         </div>
     </div>
     
