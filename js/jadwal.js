@@ -1,6 +1,7 @@
 // ============================================
 // JADWAL MENGAJAR MODULE
 // Admin PAI Super App
+// Updated: Support Google Sheets CSV Import
 // ============================================
 
 // === STATE ===
@@ -8,6 +9,7 @@ let schedules = [];
 let classes = [];
 let students = [];
 let currentEditId = null;
+let importData = []; // Data untuk import
 
 // === TIME SLOTS ===
 const TIME_SLOTS = [
@@ -42,8 +44,6 @@ async function initializeJadwalPage() {
             renderStudentsList();
             populateClassDropdowns();
             updateSidebarInfo();
-            
-            // Setup auto-update class name
             setupClassNameAutoUpdate();
         }
     });
@@ -54,9 +54,13 @@ async function updateSidebarInfo() {
     const userData = await getCurrentUserData();
     if (userData) {
         const name = userData.displayName || 'Guru PAI';
-        document.getElementById('sidebarName').textContent = name;
-        document.getElementById('sidebarEmail').textContent = userData.email;
-        document.getElementById('sidebarAvatar').textContent = name.charAt(0).toUpperCase();
+        const sidebarName = document.getElementById('sidebarName');
+        const sidebarEmail = document.getElementById('sidebarEmail');
+        const sidebarAvatar = document.getElementById('sidebarAvatar');
+        
+        if (sidebarName) sidebarName.textContent = name;
+        if (sidebarEmail) sidebarEmail.textContent = userData.email;
+        if (sidebarAvatar) sidebarAvatar.textContent = name.charAt(0).toUpperCase();
     }
 }
 
@@ -265,31 +269,46 @@ function renderStudentsList(filterClassId = '') {
 
 // === POPULATE CLASS DROPDOWNS ===
 function populateClassDropdowns() {
-    const dropdowns = ['scheduleClass', 'studentClass', 'importClass', 'filterClass'];
-    
     const options = classes.map(cls => 
         `<option value="${cls.id}">${cls.name}</option>`
     ).join('');
+    
+    const dropdowns = ['scheduleClass', 'studentClass', 'importUrlClass', 'importFileClass', 'filterClass'];
     
     dropdowns.forEach(id => {
         const select = document.getElementById(id);
         if (select) {
             const firstOption = select.querySelector('option:first-child');
-            select.innerHTML = firstOption.outerHTML + options;
+            const firstOptionHTML = firstOption ? firstOption.outerHTML : '<option value="">Pilih kelas</option>';
+            select.innerHTML = firstOptionHTML + options;
         }
     });
 }
 
 // === TAB SWITCHING ===
 function switchJadwalTab(tab) {
-    document.querySelectorAll('.tab-item').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    const tabs = ['Weekly', 'Classes', 'Students'];
     
-    const tabId = `tab${capitalize(tab)}`;
-    const contentId = `content${capitalize(tab)}`;
-    
-    document.getElementById(tabId)?.classList.add('active');
-    document.getElementById(contentId)?.classList.add('active');
+    tabs.forEach(t => {
+        const tabBtn = document.getElementById(`tab${t}`);
+        const content = document.getElementById(`content${t}`);
+        
+        if (tabBtn) {
+            if (t.toLowerCase() === tab.toLowerCase()) {
+                tabBtn.classList.add('active');
+            } else {
+                tabBtn.classList.remove('active');
+            }
+        }
+        
+        if (content) {
+            if (t.toLowerCase() === tab.toLowerCase()) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        }
+    });
 }
 
 // === SCHEDULE MODAL ===
@@ -411,22 +430,27 @@ function setupClassNameAutoUpdate() {
     const rombelInput = document.getElementById('classRombel');
     
     const updateClassName = () => {
-        const level = levelInput.value;
-        const rombel = rombelInput.value.trim().toUpperCase();
+        const level = levelInput?.value || '';
+        const rombel = rombelInput?.value?.trim().toUpperCase() || '';
         
-        if (level && rombel) {
-            document.getElementById('className').value = `Kelas ${level}${rombel}`;
+        const classNameInput = document.getElementById('className');
+        if (classNameInput && level && rombel) {
+            classNameInput.value = `Kelas ${level}${rombel}`;
         }
     };
     
-    levelInput?.addEventListener('change', updateClassName);
-    rombelInput?.addEventListener('input', updateClassName);
+    if (levelInput) levelInput.addEventListener('change', updateClassName);
+    if (rombelInput) rombelInput.addEventListener('input', updateClassName);
 }
 
 function updateFase() {
-    const level = document.getElementById('classLevel').value;
-    const fase = getFaseByKelas(level);
-    document.getElementById('classFase').value = fase ? `Fase ${fase}` : '';
+    const level = document.getElementById('classLevel')?.value;
+    const classFase = document.getElementById('classFase');
+    
+    if (classFase && typeof getFaseByKelas === 'function') {
+        const fase = getFaseByKelas(level);
+        classFase.value = fase ? `Fase ${fase}` : '';
+    }
 }
 
 async function saveClass() {
@@ -442,7 +466,7 @@ async function saveClass() {
     }
     
     const name = `Kelas ${level}${rombel}`;
-    const fase = getFaseByKelas(level);
+    const fase = typeof getFaseByKelas === 'function' ? getFaseByKelas(level) : '';
     
     const data = {
         name,
@@ -504,7 +528,6 @@ async function deleteClass(id) {
     if (!confirm(`Yakin ingin menghapus ${cls?.name}?`)) return;
     
     try {
-        // Delete associated schedules
         const schedulesToDelete = schedules.filter(s => s.classId === id);
         for (const schedule of schedulesToDelete) {
             await collections.schedules.doc(schedule.id).delete();
@@ -622,80 +645,443 @@ function filterStudentsByClass() {
     renderStudentsList(classId);
 }
 
+// ============================================
+// IMPORT FUNCTIONS - GOOGLE SHEETS & FILE
+// ============================================
+
 // === IMPORT MODAL ===
 function openImportModal() {
     document.getElementById('importModal').classList.add('active');
-    document.getElementById('importPreview').classList.add('hidden');
+    clearPreview();
+    switchImportTab('url');
 }
 
 function closeImportModal() {
     document.getElementById('importModal').classList.remove('active');
+    clearPreview();
 }
 
-function downloadTemplate() {
-    const csvContent = "NIS,Nama Lengkap,Jenis Kelamin (L/P),Tempat Lahir,Tanggal Lahir (YYYY-MM-DD),Nama Orang Tua\n";
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_import_siswa.csv';
-    a.click();
-    showToast('Template berhasil diunduh!', 'success');
+function switchImportTab(tab) {
+    const tabUrl = document.getElementById('tabImportUrl');
+    const tabFile = document.getElementById('tabImportFile');
+    const contentUrl = document.getElementById('contentImportUrl');
+    const contentFile = document.getElementById('contentImportFile');
+    
+    if (tab === 'url') {
+        tabUrl.classList.add('border-pai-green', 'text-pai-green');
+        tabUrl.classList.remove('border-transparent', 'text-gray-500');
+        tabFile.classList.remove('border-pai-green', 'text-pai-green');
+        tabFile.classList.add('border-transparent', 'text-gray-500');
+        contentUrl.classList.remove('hidden');
+        contentFile.classList.add('hidden');
+    } else {
+        tabFile.classList.add('border-pai-green', 'text-pai-green');
+        tabFile.classList.remove('border-transparent', 'text-gray-500');
+        tabUrl.classList.remove('border-pai-green', 'text-pai-green');
+        tabUrl.classList.add('border-transparent', 'text-gray-500');
+        contentFile.classList.remove('hidden');
+        contentUrl.classList.add('hidden');
+    }
 }
 
-async function processImport() {
-    const classId = document.getElementById('importClass').value;
-    const file = document.getElementById('importFile').files[0];
+// === FETCH FROM GOOGLE SHEETS ===
+async function fetchFromGoogleSheets() {
+    const url = document.getElementById('importUrl').value.trim();
+    const classId = document.getElementById('importUrlClass').value;
     
     if (!classId) {
-        showToast('Pilih kelas tujuan!', 'error');
+        showToast('Pilih kelas tujuan terlebih dahulu!', 'error');
         return;
     }
     
-    if (!file) {
-        showToast('Pilih file untuk diimport!', 'error');
+    if (!url) {
+        showToast('Masukkan URL Google Sheets!', 'error');
         return;
     }
+    
+    // Validate URL
+    if (!url.includes('docs.google.com/spreadsheets')) {
+        showToast('URL tidak valid! Gunakan link dari Google Sheets.', 'error');
+        return;
+    }
+    
+    showLoading('Mengambil data dari Google Sheets...');
+    
+    try {
+        // Convert URL to CSV export format if needed
+        let csvUrl = url;
+        
+        // Handle different Google Sheets URL formats
+        if (url.includes('/edit')) {
+            // Convert edit URL to export CSV
+            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match) {
+                const sheetId = match[1];
+                csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+            }
+        } else if (url.includes('/pubhtml')) {
+            // Convert pubhtml to pub?output=csv
+            csvUrl = url.replace('/pubhtml', '/pub?output=csv');
+        } else if (!url.includes('output=csv') && !url.includes('format=csv')) {
+            // Try to add output=csv if not present
+            if (url.includes('pub?')) {
+                csvUrl = url + '&output=csv';
+            } else if (url.includes('/pub')) {
+                csvUrl = url + '?output=csv';
+            }
+        }
+        
+        // Use CORS proxy for cross-origin requests
+        // You can use your own proxy or a public one
+        const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        const fetchUrl = proxyUrl + encodeURIComponent(csvUrl);
+        
+        const response = await fetch(fetchUrl);
+        
+        if (!response.ok) {
+            throw new Error('Gagal mengambil data. Pastikan spreadsheet sudah dipublikasikan.');
+        }
+        
+        const csvText = await response.text();
+        
+        // Check if response is HTML (error page)
+        if (csvText.includes('<!DOCTYPE') || csvText.includes('<html')) {
+            throw new Error('Spreadsheet tidak ditemukan atau belum dipublikasikan sebagai CSV.');
+        }
+        
+        // Parse CSV
+        const parsedData = parseCSV(csvText);
+        
+        if (parsedData.length === 0) {
+            throw new Error('Tidak ada data ditemukan dalam spreadsheet.');
+        }
+        
+        // Store import data with class ID
+        importData = parsedData.map(row => ({
+            ...row,
+            classId: classId
+        }));
+        
+        // Show preview
+        showImportPreview(importData);
+        
+        hideLoading();
+        showToast(`${importData.length} data siswa ditemukan!`, 'success');
+        
+    } catch (error) {
+        hideLoading();
+        console.error('Error fetching from Google Sheets:', error);
+        showToast(error.message || 'Gagal mengambil data dari Google Sheets', 'error');
+    }
+}
+
+// === PARSE CSV ===
+function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    
+    if (lines.length < 2) {
+        return [];
+    }
+    
+    // Parse header
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+    
+    // Find column indices
+    const findColumn = (names) => {
+        for (const name of names) {
+            const idx = headers.findIndex(h => h.includes(name));
+            if (idx !== -1) return idx;
+        }
+        return -1;
+    };
+    
+    const nisIdx = findColumn(['nis', 'nisn', 'no induk', 'nomor induk']);
+    const namaIdx = findColumn(['nama', 'name', 'nama lengkap', 'nama siswa']);
+    const genderIdx = findColumn(['l/p', 'jk', 'jenis kelamin', 'gender', 'kelamin']);
+    const tempatIdx = findColumn(['tempat', 'tempat lahir', 'ttl']);
+    const tanggalIdx = findColumn(['tanggal', 'tanggal lahir', 'tgl lahir']);
+    const ortuIdx = findColumn(['orang tua', 'ortu', 'wali', 'nama ortu', 'nama orang tua']);
+    
+    if (namaIdx === -1) {
+        showToast('Kolom "Nama" tidak ditemukan dalam spreadsheet!', 'error');
+        return [];
+    }
+    
+    const result = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        
+        const nama = values[namaIdx]?.trim();
+        if (!nama) continue; // Skip empty rows
+        
+        // Parse gender
+        let gender = 'L';
+        if (genderIdx !== -1) {
+            const g = values[genderIdx]?.trim().toUpperCase();
+            if (g === 'P' || g === 'PEREMPUAN' || g === 'WANITA' || g === 'F' || g === 'FEMALE') {
+                gender = 'P';
+            }
+        }
+        
+        result.push({
+            nis: nisIdx !== -1 ? values[nisIdx]?.trim() || '' : '',
+            name: nama,
+            gender: gender,
+            birthPlace: tempatIdx !== -1 ? values[tempatIdx]?.trim() || '' : '',
+            birthDate: tanggalIdx !== -1 ? formatDateValue(values[tanggalIdx]?.trim()) : '',
+            parent: ortuIdx !== -1 ? values[ortuIdx]?.trim() || '' : '',
+            status: 'valid'
+        });
+    }
+    
+    return result;
+}
+
+// === PARSE CSV LINE (Handle quoted values) ===
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    
+    return result.map(val => val.replace(/^"|"$/g, '').trim());
+}
+
+// === FORMAT DATE VALUE ===
+function formatDateValue(dateStr) {
+    if (!dateStr) return '';
+    
+    // Try to parse various date formats
+    // DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, etc.
+    
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+    }
+    
+    // DD/MM/YYYY or DD-MM-YYYY
+    const match = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (match) {
+        const [, day, month, year] = match;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    
+    return '';
+}
+
+// === PREVIEW FILE IMPORT ===
+async function previewFileImport() {
+    const fileInput = document.getElementById('importFile');
+    const classId = document.getElementById('importFileClass').value;
+    const file = fileInput.files[0];
+    
+    if (!classId) {
+        showToast('Pilih kelas tujuan terlebih dahulu!', 'error');
+        fileInput.value = '';
+        return;
+    }
+    
+    if (!file) return;
+    
+    showLoading('Membaca file...');
     
     try {
         const text = await file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        const headers = lines[0].split(',');
+        const parsedData = parseCSV(text);
         
+        if (parsedData.length === 0) {
+            throw new Error('Tidak ada data valid dalam file.');
+        }
+        
+        importData = parsedData.map(row => ({
+            ...row,
+            classId: classId
+        }));
+        
+        showImportPreview(importData);
+        
+        hideLoading();
+        showToast(`${importData.length} data siswa ditemukan!`, 'success');
+        
+    } catch (error) {
+        hideLoading();
+        console.error('Error reading file:', error);
+        showToast(error.message || 'Gagal membaca file', 'error');
+    }
+}
+
+// === SHOW IMPORT PREVIEW ===
+function showImportPreview(data) {
+    const previewContainer = document.getElementById('importPreview');
+    const previewBody = document.getElementById('previewTableBody');
+    const previewCount = document.getElementById('previewCount');
+    const importCountBtn = document.getElementById('importCountBtn');
+    const btnProcess = document.getElementById('btnProcessImport');
+    
+    previewContainer.classList.remove('hidden');
+    previewCount.textContent = data.length;
+    importCountBtn.textContent = data.length;
+    btnProcess.disabled = false;
+    
+    previewBody.innerHTML = data.map((row, idx) => `
+        <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+            <td class="p-2">${idx + 1}</td>
+            <td class="p-2">${row.nis || '-'}</td>
+            <td class="p-2">${row.name}</td>
+            <td class="p-2">${row.gender}</td>
+            <td class="p-2">
+                <span class="text-green-600">✓ Valid</span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// === CLEAR PREVIEW ===
+function clearPreview() {
+    const previewContainer = document.getElementById('importPreview');
+    const previewBody = document.getElementById('previewTableBody');
+    const btnProcess = document.getElementById('btnProcessImport');
+    const importCountBtn = document.getElementById('importCountBtn');
+    
+    previewContainer.classList.add('hidden');
+    previewBody.innerHTML = '';
+    btnProcess.disabled = true;
+    importCountBtn.textContent = '0';
+    importData = [];
+    
+    // Clear inputs
+    const urlInput = document.getElementById('importUrl');
+    const fileInput = document.getElementById('importFile');
+    if (urlInput) urlInput.value = '';
+    if (fileInput) fileInput.value = '';
+}
+
+// === PROCESS IMPORT ===
+async function processImport() {
+    if (importData.length === 0) {
+        showToast('Tidak ada data untuk diimport!', 'error');
+        return;
+    }
+    
+    const classId = importData[0].classId;
+    if (!classId) {
+        showToast('Kelas tujuan tidak valid!', 'error');
+        return;
+    }
+    
+    showLoading(`Mengimport ${importData.length} siswa...`);
+    
+    try {
+        const userId = auth.currentUser.uid;
         let imported = 0;
+        let failed = 0;
         
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',');
-            if (values.length >= 2 && values[1].trim()) {
+        // Use batch for better performance
+        const batchSize = 500; // Firestore limit
+        let batch = db.batch();
+        let batchCount = 0;
+        
+        for (const row of importData) {
+            try {
                 const data = {
-                    nis: values[0]?.trim() || '',
-                    name: values[1]?.trim() || '',
-                    gender: values[2]?.trim().toUpperCase() === 'P' ? 'P' : 'L',
-                    birthPlace: values[3]?.trim() || '',
-                    birthDate: values[4]?.trim() || '',
-                    parent: values[5]?.trim() || '',
-                    classId,
-                    teacherId: auth.currentUser.uid,
+                    nis: row.nis || '',
+                    name: row.name,
+                    gender: row.gender,
+                    birthPlace: row.birthPlace || '',
+                    birthDate: row.birthDate || '',
+                    parent: row.parent || '',
+                    classId: classId,
+                    teacherId: userId,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 
-                await collections.students.add(data);
+                const docRef = collections.students.doc();
+                batch.set(docRef, data);
+                batchCount++;
                 imported++;
+                
+                // Commit batch if it reaches the limit
+                if (batchCount >= batchSize) {
+                    await batch.commit();
+                    batch = db.batch();
+                    batchCount = 0;
+                }
+                
+            } catch (e) {
+                console.error('Error importing row:', e);
+                failed++;
             }
         }
         
-        showToast(`${imported} siswa berhasil diimport!`, 'success');
-        closeImportModal();
+        // Commit remaining items
+        if (batchCount > 0) {
+            await batch.commit();
+        }
         
+        hideLoading();
+        
+        if (failed > 0) {
+            showToast(`${imported} siswa berhasil diimport, ${failed} gagal`, 'warning');
+        } else {
+            showToast(`${imported} siswa berhasil diimport!`, 'success');
+        }
+        
+        closeImportModal();
         await loadAllData();
         renderStudentsList();
         renderClassesList();
         
     } catch (error) {
-        console.error('Error importing:', error);
-        showToast('Gagal mengimport data. Pastikan format file benar.', 'error');
+        hideLoading();
+        console.error('Error processing import:', error);
+        showToast('Gagal mengimport data', 'error');
     }
+}
+
+// === DOWNLOAD TEMPLATE ===
+function downloadTemplate() {
+    const csvContent = "NIS,Nama Lengkap,Jenis Kelamin (L/P),Tempat Lahir,Tanggal Lahir (DD/MM/YYYY),Nama Orang Tua\n" +
+        "12345,Ahmad Fauzi,L,Jakarta,15/05/2015,Budi Santoso\n" +
+        "12346,Siti Aisyah,P,Bandung,20/08/2015,Ahmad Hidayat\n";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_import_siswa.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showToast('Template berhasil diunduh!', 'success');
+}
+
+// === LOADING OVERLAY ===
+function showLoading(text = 'Memproses...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    
+    if (loadingText) loadingText.textContent = text;
+    if (overlay) overlay.classList.remove('hidden');
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.classList.add('hidden');
 }
 
 // === PRINT ===
@@ -706,13 +1092,10 @@ function printSchedule() {
 // === SIDEBAR TOGGLE ===
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    sidebar.classList.toggle('open');
-    sidebar.classList.toggle('collapsed');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+        sidebar.classList.toggle('collapsed');
+    }
 }
 
-// === HELPER ===
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-console.log('✅ Jadwal module initialized');
+console.log('✅ Jadwal module initialized (with Google Sheets import)');
