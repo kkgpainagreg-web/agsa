@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - Admin Guru Super App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'inter': ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .loading-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl p-8 flex flex-col items-center space-y-4">
+            <div class="loading-spinner"></div>
+            <p class="text-gray-600 font-medium">Memproses...</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-4 right-4 z-50 transform translate-x-full transition-transform duration-300">
+        <div id="toastContent" class="px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3">
+            <i id="toastIcon" class="text-xl"></i>
+            <span id="toastMessage" class="font-medium"></span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-red-600 to-red-800 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-user-shield text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Super Admin Panel</h1>
+                    <p class="text-red-200 text-sm">Admin Guru Super App</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="adminEmail" class="text-red-100">afifaro@gmail.com</span>
+                <button onclick="logout()" class="px-4 py-2 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-all">
+                    <i class="fas fa-sign-out-alt mr-2"></i>Keluar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+                <h3 id="totalUsers" class="text-3xl font-bold text-gray-800">0</h3>
+                <p class="text-gray-500">Total Pengguna</p>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-crown text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+                <h3 id="premiumUsers" class="text-3xl font-bold text-gray-800">0</h3>
+                <p class="text-gray-500">Pengguna Premium</p>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-user-plus text-green-600 text-xl"></i>
+                    </div>
+                </div>
+                <h3 id="newUsersToday" class="text-3xl font-bold text-gray-800">0</h3>
+                <p class="text-gray-500">Pengguna Baru (Hari Ini)</p>
+            </div>
+            <div class="bg-white rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-clock text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+                <h3 id="activeToday" class="text-3xl font-bold text-gray-800">0</h3>
+                <p class="text-gray-500">Aktif Hari Ini</p>
+            </div>
+        </div>
+
+        <!-- Settings Card -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-cog mr-2 text-gray-400"></i>Pengaturan Sistem
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nomor WhatsApp Admin (untuk upgrade)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="adminWhatsapp" placeholder="6281234567890" 
+                               class="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500">
+                        <button onclick="saveWhatsappNumber()" class="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Format: kode negara + nomor (tanpa + atau spasi)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Harga Langganan</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <input type="text" id="pricePersonal" placeholder="Perorangan" 
+                                   class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500">
+                            <p class="text-xs text-gray-500 mt-1">Per tahun</p>
+                        </div>
+                        <div>
+                            <input type="text" id="priceSchool" placeholder="Paket Sekolah" 
+                                   class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500">
+                            <p class="text-xs text-gray-500 mt-1">Per tahun</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <h2 class="text-xl font-bold text-gray-800">
+                    <i class="fas fa-users mr-2 text-gray-400"></i>Daftar Pengguna
+                </h2>
+                <div class="flex gap-3">
+                    <input type="text" id="searchUser" onkeyup="filterUsers()" placeholder="Cari email atau nama..." 
+                           class="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500">
+                    <select id="filterSubscription" onchange="filterUsers()" class="px-4 py-2 border border-gray-200 rounded-xl">
+                        <option value="">Semua</option>
+                        <option value="free">Free</option>
+                        <option value="premium">Premium</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nama</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Langganan</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Terdaftar</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Login Terakhir</th>
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-400">
+                                Memuat data pengguna...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upgrade User Modal -->
+    <div id="upgradeModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Upgrade ke Premium</h3>
+            <p id="upgradeUserEmail" class="text-gray-600 mb-4"></p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Durasi</label>
+                    <select id="upgradeDuration" class="w-full px-4 py-2 border border-gray-200 rounded-xl">
+                        <option value="30">1 Bulan</option>
+                        <option value="90">3 Bulan</option>
+                        <option value="180">6 Bulan</option>
+                        <option value="365" selected>1 Tahun</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="closeUpgradeModal()" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50">
+                    Batal
+                </button>
+                <button onclick="confirmUpgrade()" class="px-4 py-2 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600">
+                    <i class="fas fa-crown mr-2"></i>Upgrade
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpiK4F4ilnDDNEwO0djGY-ClwgwBl1eFk",
+            authDomain: "asap-1d653.firebaseapp.com",
+            projectId: "asap-1d653",
+            storageBucket: "asap-1d653.firebasestorage.app",
+            messagingSenderId: "143263188364",
+            appId: "1:143263188364:web:47b4c003972b3503e882a9",
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        const SUPER_ADMIN_EMAIL = 'afifaro@gmail.com';
+        let allUsers = [];
+        let selectedUserId = null;
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastContent = document.getElementById('toastContent');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+
+            const types = {
+                success: { bg: 'bg-green-500', icon: 'fas fa-check-circle' },
+                error: { bg: 'bg-red-500', icon: 'fas fa-exclamation-circle' },
+                warning: { bg: 'bg-yellow-500', icon: 'fas fa-exclamation-triangle' },
+                info: { bg: 'bg-blue-500', icon: 'fas fa-info-circle' }
+            };
+
+            toastContent.className = `${types[type].bg} text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3`;
+            toastIcon.className = `${types[type].icon} text-xl`;
+            toastMessage.textContent = message;
+
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => toast.classList.add('translate-x-full'), 3000);
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return '-';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        async function loadUsers() {
+            try {
+                const usersSnap = await db.collection('users').orderBy('createdAt', 'desc').get();
+                allUsers = [];
+                
+                let totalPremium = 0;
+                let newToday = 0;
+                let activeToday = 0;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                usersSnap.forEach(doc => {
+                    const user = { id: doc.id, ...doc.data() };
+                    allUsers.push(user);
+                    
+                    if (user.subscription === 'premium') totalPremium++;
+                    
+                    if (user.createdAt) {
+                        const createdDate = user.createdAt.toDate();
+                        createdDate.setHours(0, 0, 0, 0);
+                        if (createdDate.getTime() === today.getTime()) newToday++;
+                    }
+                    
+                    if (user.lastLogin) {
+                        const lastLoginDate = user.lastLogin.toDate();
+                        lastLoginDate.setHours(0, 0, 0, 0);
+                        if (lastLoginDate.getTime() === today.getTime()) activeToday++;
+                    }
+                });
+
+                document.getElementById('totalUsers').textContent = allUsers.length;
+                document.getElementById('premiumUsers').textContent = totalPremium;
+                document.getElementById('newUsersToday').textContent = newToday;
+                document.getElementById('activeToday').textContent = activeToday;
+
+                renderUsersTable(allUsers);
+
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showToast('Gagal memuat data pengguna', 'error');
+            }
+        }
+
+        function renderUsersTable(users) {
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-400">
+                            Tidak ada data pengguna
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm">${user.email || '-'}</td>
+                    <td class="px-4 py-3 text-sm font-medium">${user.displayName || '-'}</td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="px-3 py-1 ${user.subscription === 'premium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'} text-xs font-medium rounded-full">
+                            ${user.subscription === 'premium' ? 'Premium' : 'Free'}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-center text-sm text-gray-500">${formatDate(user.createdAt)}</td>
+                    <td class="px-4 py-3 text-center text-sm text-gray-500">${formatDate(user.lastLogin)}</td>
+                    <td class="px-4 py-3 text-center">
+                        ${user.subscription === 'premium' ? `
+                            <button onclick="downgradePremium('${user.id}')" class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg">
+                                Downgrade
+                            </button>
+                        ` : `
+                            <button onclick="showUpgradeModal('${user.id}', '${user.email}')" class="px-3 py-1 text-sm text-yellow-600 hover:bg-yellow-50 rounded-lg">
+                                <i class="fas fa-crown mr-1"></i>Upgrade
+                            </button>
+                        `}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const search = document.getElementById('searchUser').value.toLowerCase();
+            const subscription = document.getElementById('filterSubscription').value;
+            
+            let filtered = allUsers;
+            
+            if (search) {
+                filtered = filtered.filter(u => 
+                    (u.email && u.email.toLowerCase().includes(search)) ||
+                    (u.displayName && u.displayName.toLowerCase().includes(search))
+                );
+            }
+            
+            if (subscription) {
+                filtered = filtered.filter(u => u.subscription === subscription);
+            }
+            
+            renderUsersTable(filtered);
+        }
+
+        function showUpgradeModal(userId, email) {
+            selectedUserId = userId;
+            document.getElementById('upgradeUserEmail').textContent = `Email: ${email}`;
+            document.getElementById('upgradeModal').classList.remove('hidden');
+        }
+
+        function closeUpgradeModal() {
+            document.getElementById('upgradeModal').classList.add('hidden');
+            selectedUserId = null;
+        }
+
+        async function confirmUpgrade() {
+            if (!selectedUserId) return;
+            
+            const duration = parseInt(document.getElementById('upgradeDuration').value);
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + duration);
+            
+            showLoading();
+            
+            try {
+                await db.collection('users').doc(selectedUserId).update({
+                    subscription: 'premium',
+                    subscriptionExpiry: firebase.firestore.Timestamp.fromDate(expiryDate),
+                    upgradedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                closeUpgradeModal();
+                showToast('Pengguna berhasil diupgrade ke Premium!', 'success');
+                loadUsers();
+                
+            } catch (error) {
+                console.error(error);
+                showToast('Gagal mengupgrade pengguna', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        async function downgradePremium(userId) {
+            if (!confirm('Yakin ingin downgrade pengguna ini ke Free?')) return;
+            
+            showLoading();
+            
+            try {
+                await db.collection('users').doc(userId).update({
+                    subscription: 'free',
+                    subscriptionExpiry: null
+                });
+                
+                showToast('Pengguna berhasil didowngrade ke Free', 'success');
+                loadUsers();
+                
+            } catch (error) {
+                console.error(error);
+                showToast('Gagal downgrade pengguna', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        async function saveWhatsappNumber() {
+            const number = document.getElementById('adminWhatsapp').value.trim();
+            
+            if (!number) {
+                showToast('Masukkan nomor WhatsApp', 'warning');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                await db.collection('settings').doc('global').set({
+                    whatsappAdmin: number,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                showToast('Nomor WhatsApp berhasil disimpan!', 'success');
+                
+            } catch (error) {
+                console.error(error);
+                showToast('Gagal menyimpan nomor WhatsApp', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        async function loadSettings() {
+            try {
+                const settingsDoc = await db.collection('settings').doc('global').get();
+                
+                if (settingsDoc.exists) {
+                    const data = settingsDoc.data();
+                    document.getElementById('adminWhatsapp').value = data.whatsappAdmin || '';
+                    document.getElementById('pricePersonal').value = data.pricePersonal || '';
+                    document.getElementById('priceSchool').value = data.priceSchool || '';
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        async function logout() {
+            if (confirm('Yakin ingin keluar?')) {
+                await auth.signOut();
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Auth state listener
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                if (user.email !== SUPER_ADMIN_EMAIL) {
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+                document.getElementById('adminEmail').textContent = user.email;
+                loadUsers();
+                loadSettings();
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>
