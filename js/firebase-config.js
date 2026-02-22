@@ -14,7 +14,12 @@ firebase.initializeApp(firebaseConfig);
 // Initialize services
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
+
+// Initialize storage only if available
+let storage = null;
+if (typeof firebase.storage === 'function') {
+    storage = firebase.storage();
+}
 
 // Auth provider
 const googleProvider = new firebase.auth.GoogleAuthProvider();
@@ -32,7 +37,7 @@ db.enablePersistence({ synchronizeTabs: true })
         }
     });
 
-// Super Admin email
+// Super Admin email - HARUS DIDEFINISIKAN DI SINI
 const SUPER_ADMIN_EMAIL = 'afifaro@gmail.com';
 
 // App Settings (dapat diubah oleh Super Admin)
@@ -99,12 +104,15 @@ function getAvailableAcademicYears() {
 
 // Convert display format to ID format
 function academicYearToId(displayYear) {
+    if (!displayYear) return '';
     return displayYear.replace('/', '_');
 }
 
 // Convert ID format to display format
 function academicYearToDisplay(idYear) {
+    if (!idYear) return '';
     return idYear.replace('_', '/');
 }
 
 console.log('Firebase initialized successfully');
+console.log('Super Admin Email:', SUPER_ADMIN_EMAIL);
