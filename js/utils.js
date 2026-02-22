@@ -1,9 +1,12 @@
-// Utility Functions
+// Utility Functions - Complete Version
 
 // Show toast notification
 function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toastContainer');
-    if (!container) return;
+    if (!container) {
+        console.log(`[${type.toUpperCase()}] ${message}`);
+        return;
+    }
 
     const colors = {
         success: 'bg-green-500',
@@ -28,12 +31,10 @@ function showToast(message, type = 'info', duration = 3000) {
 
     container.appendChild(toast);
 
-    // Trigger animation
     setTimeout(() => {
         toast.classList.remove('translate-x-full');
     }, 100);
 
-    // Remove toast
     setTimeout(() => {
         toast.classList.add('translate-x-full');
         setTimeout(() => {
@@ -62,28 +63,44 @@ function formatDate(date, options = {}) {
         month: 'long',
         day: 'numeric'
     };
-    return new Date(date).toLocaleDateString('id-ID', { ...defaultOptions, ...options });
+    try {
+        return new Date(date).toLocaleDateString('id-ID', { ...defaultOptions, ...options });
+    } catch (e) {
+        return '-';
+    }
 }
 
 // Format short date
 function formatShortDate(date) {
-    return new Date(date).toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
+    try {
+        return new Date(date).toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return '-';
+    }
 }
 
 // Format date for input
 function formatDateForInput(date) {
-    const d = new Date(date);
-    return d.toISOString().split('T')[0];
+    try {
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
+    } catch (e) {
+        return '';
+    }
 }
 
 // Get day name in Indonesian
 function getDayName(date) {
     const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    return days[new Date(date).getDay()];
+    try {
+        return days[new Date(date).getDay()];
+    } catch (e) {
+        return '-';
+    }
 }
 
 // Get month name in Indonesian
@@ -92,7 +109,7 @@ function getMonthName(month) {
         'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
-    return months[month];
+    return months[month] || '-';
 }
 
 // Generate unique ID
@@ -100,57 +117,12 @@ function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// Debounce function
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-// Deep clone object
-function deepClone(obj) {
-    return JSON.parse(JSON.stringify(obj));
-}
-
-// Check if object is empty
-function isEmpty(obj) {
-    return Object.keys(obj).length === 0;
-}
-
-// Sanitize HTML
-function sanitizeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// Convert number to Roman numeral
-function toRoman(num) {
-    const romanNumerals = [
-        ['M', 1000], ['CM', 900], ['D', 500], ['CD', 400],
-        ['C', 100], ['XC', 90], ['L', 50], ['XL', 40],
-        ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1]
-    ];
-    let result = '';
-    for (const [roman, value] of romanNumerals) {
-        while (num >= value) {
-            result += roman;
-            num -= value;
-        }
-    }
-    return result;
-}
-
 // Parse CSV
 function parseCSV(text, delimiter = ',') {
     const lines = text.split('\n');
-    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    if (lines.length === 0) return { headers: [], data: [] };
+    
+    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, '_'));
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -169,20 +141,80 @@ function parseCSV(text, delimiter = ',') {
     return { headers, data };
 }
 
-// Convert data to CSV
-function toCSV(data, headers) {
-    const csvHeaders = headers.join(',');
-    const csvRows = data.map(row => 
-        headers.map(header => {
-            let value = row[header] || '';
-            // Escape commas and quotes
-            if (value.toString().includes(',') || value.toString().includes('"')) {
-                value = `"${value.toString().replace(/"/g, '""')}"`;
+// Calculate effective days between two dates
+function calculateEffectiveDays(startDate, endDate, holidays = [], excludeSunday = true, excludeSaturday = false) {
+    let count = 0;
+    
+    try {
+        const current = new Date(startDate);
+        const end = new Date(endDate);
+        
+        const holidaySet = new Set(holidays.map(d => {
+            try {
+                return formatDateForInput(d);
+            } catch (e) {
+                return '';
             }
-            return value;
-        }).join(',')
-    );
-    return [csvHeaders, ...csvRows].join('\n');
+        }));
+
+        while (current <= end) {
+            const dayOfWeek = current.getDay();
+            const dateStr = formatDateForInput(current);
+            
+            const isSunday = dayOfWeek === 0;
+            const isSaturday = dayOfWeek === 6;
+            const isHoliday = holidaySet.has(dateStr);
+
+            if (!isHoliday && !(excludeSunday && isSunday) && !(excludeSaturday && isSaturday)) {
+                count++;
+            }
+
+            current.setDate(current.getDate() + 1);
+        }
+    } catch (e) {
+        console.error('Error calculating effective days:', e);
+    }
+
+    return count;
+}
+
+// Get weeks between two dates
+function getWeeksBetween(startDate, endDate) {
+    try {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return Math.ceil(diffDays / 7);
+    } catch (e) {
+        return 0;
+    }
+}
+
+// Group array by key
+function groupBy(array, key) {
+    if (!array || !Array.isArray(array)) return {};
+    return array.reduce((result, item) => {
+        const keyValue = item[key];
+        (result[keyValue] = result[keyValue] || []).push(item);
+        return result;
+    }, {});
+}
+
+// Check if premium feature
+function isPremiumFeature(feature) {
+    const premiumFeatures = ['promes', 'modul-ajar', 'lkpd', 'bank-soal', 'kktp', 'daftar-nilai', 'jurnal', 'nilai', 'absensi'];
+    return premiumFeatures.includes(feature);
+}
+
+// Validate email
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// Validate Gmail
+function isGmail(email) {
+    return email && email.toLowerCase().endsWith('@gmail.com');
 }
 
 // Download file
@@ -198,147 +230,4 @@ function downloadFile(content, filename, mimeType = 'text/plain') {
     URL.revokeObjectURL(url);
 }
 
-// Validate email
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-// Validate Gmail
-function isGmail(email) {
-    return email.toLowerCase().endsWith('@gmail.com');
-}
-
-// Calculate effective days between two dates (excluding Sundays and holidays)
-function calculateEffectiveDays(startDate, endDate, holidays = [], excludeSunday = true, excludeSaturday = false) {
-    let count = 0;
-    const current = new Date(startDate);
-    const end = new Date(endDate);
-    
-    const holidaySet = new Set(holidays.map(d => formatDateForInput(d)));
-
-    while (current <= end) {
-        const dayOfWeek = current.getDay();
-        const dateStr = formatDateForInput(current);
-        
-        const isSunday = dayOfWeek === 0;
-        const isSaturday = dayOfWeek === 6;
-        const isHoliday = holidaySet.has(dateStr);
-
-        if (!isHoliday && !(excludeSunday && isSunday) && !(excludeSaturday && isSaturday)) {
-            count++;
-        }
-
-        current.setDate(current.getDate() + 1);
-    }
-
-    return count;
-}
-
-// Get weeks between two dates
-function getWeeksBetween(startDate, endDate) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.ceil(diffDays / 7);
-}
-
-// Group array by key
-function groupBy(array, key) {
-    return array.reduce((result, item) => {
-        const keyValue = item[key];
-        (result[keyValue] = result[keyValue] || []).push(item);
-        return result;
-    }, {});
-}
-
-// Sort array by multiple keys
-function sortBy(array, ...keys) {
-    return array.sort((a, b) => {
-        for (const key of keys) {
-            const aVal = a[key];
-            const bVal = b[key];
-            if (aVal < bVal) return -1;
-            if (aVal > bVal) return 1;
-        }
-        return 0;
-    });
-}
-
-// Calculate grade
-function calculateGrade(scores, weights) {
-    let totalWeight = 0;
-    let weightedSum = 0;
-
-    for (const key in scores) {
-        if (weights[key] && scores[key] !== null && scores[key] !== undefined) {
-            weightedSum += scores[key] * weights[key];
-            totalWeight += weights[key];
-        }
-    }
-
-    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
-}
-
-// Convert grade to predicate
-function gradeToPredicate(grade) {
-    if (grade >= 90) return 'A';
-    if (grade >= 80) return 'B';
-    if (grade >= 70) return 'C';
-    if (grade >= 60) return 'D';
-    return 'E';
-}
-
-// Format currency
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
-    }).format(amount);
-}
-
-// Truncate text
-function truncateText(text, maxLength) {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-}
-
-// Capitalize first letter
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// Generate color from string
-function stringToColor(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colors = [
-        '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-        '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-        '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-        '#ec4899', '#f43f5e'
-    ];
-    return colors[Math.abs(hash) % colors.length];
-}
-
-// Check if premium feature
-function isPremiumFeature(feature) {
-    const premiumFeatures = ['promes', 'modul-ajar', 'lkpd', 'bank-soal', 'kktp', 'daftar-nilai', 'jurnal'];
-    return premiumFeatures.includes(feature);
-}
-
-// Console log with style
-function logInfo(message) {
-    console.log(`%c[AGSA] ${message}`, 'color: #22c55e; font-weight: bold;');
-}
-
-function logError(message) {
-    console.error(`%c[AGSA Error] ${message}`, 'color: #ef4444; font-weight: bold;');
-}
-
-function logWarning(message) {
-    console.warn(`%c[AGSA Warning] ${message}`, 'color: #f59e0b; font-weight: bold;');
-}
+console.log('Utils.js loaded successfully');
