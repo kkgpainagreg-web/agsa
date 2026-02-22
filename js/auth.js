@@ -1,4 +1,4 @@
-// Authentication Module
+// Authentication Module - Complete Fixed Version
 
 let currentUser = null;
 let userProfile = null;
@@ -34,14 +34,6 @@ async function loginWithGoogle() {
             return;
         }
 
-        // Check if user exists, if not create profile
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        
-        if (!userDoc.exists) {
-            // Create new user profile
-            await createUserProfile(user);
-        }
-
         hideLoginModal();
         showToast('Login berhasil! Selamat datang.', 'success');
         
@@ -64,56 +56,7 @@ async function loginWithGoogle() {
     }
 }
 
-// Create user profile
-async function createUserProfile(user) {
-    const academicYears = getAvailableAcademicYears();
-    
-    const profile = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || '',
-        photoURL: user.photoURL || '',
-        nip: '',
-        phone: '',
-        
-        // School info
-        schoolName: '',
-        schoolAddress: '',
-        schoolCity: '',
-        schoolProvince: '',
-        principalName: '',
-        
-        // Teaching info
-        subjects: [], // Array of subjects with jam per week
-        
-        // Subscription
-        subscription: {
-            type: 'free', // 'free', 'premium', 'school'
-            startDate: null,
-            endDate: null,
-            isActive: false
-        },
-        
-        // Settings
-        settings: {
-            defaultAcademicYear: academicYears[1], // Current year
-            theme: 'light',
-            notifications: true
-        },
-        
-        // Meta
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    await db.collection('users').doc(user.uid).set(profile);
-    logInfo('User profile created for: ' + user.email);
-    
-    return profile;
-}
-
-// Check auth state
+// Check auth state (for index page)
 function checkAuthState() {
     auth.onAuthStateChanged(async (user) => {
         showLoading(false);
@@ -121,30 +64,9 @@ function checkAuthState() {
         if (user) {
             currentUser = user;
             
-            // Load user profile
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
-                userProfile = userDoc.data();
-                
-                // Update last login
-                await db.collection('users').doc(user.uid).update({
-                    lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            // Check if on landing page, redirect to app
-            if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+            // If on landing page, redirect to app
+            if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname === '') {
                 window.location.href = 'app.html';
-            }
-            
-        } else {
-            currentUser = null;
-            userProfile = null;
-            
-            // If on protected page, redirect to login
-            if (window.location.pathname.includes('app.html') || 
-                window.location.pathname.includes('admin.html')) {
-                window.location.href = 'index.html';
             }
         }
     });
@@ -173,7 +95,12 @@ function isPremium() {
     if (!sub || sub.type === 'free') return false;
     
     if (sub.endDate) {
-        const endDate = sub.endDate.toDate ? sub.endDate.toDate() : new Date(sub.endDate);
+        let endDate;
+        if (sub.endDate.toDate) {
+            endDate = sub.endDate.toDate();
+        } else {
+            endDate = new Date(sub.endDate);
+        }
         return new Date() < endDate;
     }
     
@@ -187,24 +114,10 @@ function isSuperAdmin() {
 
 // Redirect to WhatsApp for upgrade
 function redirectToWhatsApp() {
-    const message = encodeURIComponent('Halo, saya ingin upgrade ke AGSA Premium. Email: ' + (currentUser ? currentUser.email : ''));
+    const email = currentUser ? currentUser.email : '';
+    const message = encodeURIComponent('Halo, saya ingin upgrade ke AGSA Premium. Email: ' + email);
     const whatsappUrl = `https://wa.me/${APP_SETTINGS.whatsappNumber}?text=${message}`;
     window.open(whatsappUrl, '_blank');
-}
-
-// Get user profile
-async function getUserProfile() {
-    if (!currentUser) return null;
-    
-    if (userProfile) return userProfile;
-    
-    const doc = await db.collection('users').doc(currentUser.uid).get();
-    if (doc.exists) {
-        userProfile = doc.data();
-        return userProfile;
-    }
-    
-    return null;
 }
 
 // Update user profile
@@ -226,3 +139,5 @@ async function updateUserProfile(data) {
         throw error;
     }
 }
+
+console.log('Auth.js loaded successfully');
