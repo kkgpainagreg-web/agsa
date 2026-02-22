@@ -23,8 +23,8 @@ const SUPER_ADMIN_EMAIL = 'afifaro@gmail.com';
 const APP_CONFIG = {
     version: '1.0.0',
     appName: 'ADMIN GURU SUPER APP',
-    defaultWhatsApp: '6281234567890', // Default WhatsApp for upgrade
-    freeFeatures: ['calendar', 'schedule', 'atp', 'prota', 'profile'],
+    defaultWhatsApp: '6281234567890',
+    freeFeatures: ['calendar', 'schedule', 'atp', 'prota', 'profile', 'curriculum', 'dashboard', 'ai-assistant', 'students'],
     premiumFeatures: ['promes', 'modul-ajar', 'lkpd', 'bank-soal', 'journal', 'attendance', 'grades', 'kktp'],
 };
 
@@ -33,19 +33,22 @@ const JENJANG_PENDIDIKAN = {
     SD: {
         name: 'SD/MI',
         kelas: [1, 2, 3, 4, 5, 6],
-        durasiJam: 35, // menit
+        kelasAkhir: 6,
+        durasiJam: 35,
         faseMapping: { 1: 'A', 2: 'A', 3: 'B', 4: 'B', 5: 'C', 6: 'C' }
     },
     SMP: {
         name: 'SMP/MTs',
         kelas: [7, 8, 9],
-        durasiJam: 40, // menit
+        kelasAkhir: 9,
+        durasiJam: 40,
         faseMapping: { 7: 'D', 8: 'D', 9: 'D' }
     },
     SMA: {
         name: 'SMA/MA/SMK',
         kelas: [10, 11, 12],
-        durasiJam: 45, // menit
+        kelasAkhir: 12,
+        durasiJam: 45,
         faseMapping: { 10: 'E', 11: 'F', 12: 'F' }
     }
 };
@@ -64,6 +67,11 @@ const DIMENSI_PROFIL_LULUSAN = [
 
 // Hari dalam Seminggu
 const HARI = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const HARI_INDEX = { 'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5, 'Sabtu': 6, 'Minggu': 0 };
+
+// Nama Bulan
+const NAMA_BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const NAMA_BULAN_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 // Elemen PAI
 const ELEMEN_PAI = [
@@ -74,7 +82,14 @@ const ELEMEN_PAI = [
     'Sejarah Peradaban Islam'
 ];
 
-// Helper Functions for Academic Year
+// ============================================
+// HELPER FUNCTIONS - ACADEMIC YEAR (FIXED)
+// ============================================
+
+/**
+ * Get available academic years based on current date
+ * @returns {Array} Array of academic year strings like ["2024-2025", "2025-2026"]
+ */
 function getAcademicYears() {
     const now = new Date();
     const currentMonth = now.getMonth() + 1; // 1-12
@@ -83,22 +98,62 @@ function getAcademicYears() {
     let years = [];
     
     if (currentMonth >= 7) {
-        // Setelah Juli: tahun ini/tahun depan
-        years.push(`${currentYear}/${currentYear + 1}`);
-        years.push(`${currentYear + 1}/${currentYear + 2}`);
+        // Setelah Juli: tahun ini/tahun depan aktif
+        years.push(`${currentYear}-${currentYear + 1}`);
+        years.push(`${currentYear + 1}-${currentYear + 2}`);
     } else if (currentMonth >= 6) {
-        // Juni: transisi
-        years.push(`${currentYear - 1}/${currentYear}`);
-        years.push(`${currentYear}/${currentYear + 1}`);
+        // Juni: transisi, tampilkan dua opsi
+        years.push(`${currentYear - 1}-${currentYear}`);
+        years.push(`${currentYear}-${currentYear + 1}`);
     } else {
-        // Januari-Mei: tahun lalu/tahun ini
-        years.push(`${currentYear - 1}/${currentYear}`);
-        years.push(`${currentYear}/${currentYear + 1}`);
+        // Januari-Mei: tahun lalu/tahun ini masih aktif
+        years.push(`${currentYear - 1}-${currentYear}`);
+        years.push(`${currentYear}-${currentYear + 1}`);
     }
     
     return years;
 }
 
+/**
+ * Get display format for academic year (untuk tampilan UI)
+ * @param {string} yearId - Format "2025-2026"
+ * @returns {string} Format "2025/2026" untuk display
+ */
+function formatAcademicYearDisplay(yearId) {
+    return yearId.replace('-', '/');
+}
+
+/**
+ * Get document ID format for academic year (untuk Firestore)
+ * @param {string} yearDisplay - Format "2025/2026" atau "2025-2026"
+ * @returns {string} Format "2025-2026" untuk document ID
+ */
+function formatAcademicYearDocId(yearDisplay) {
+    return yearDisplay.replace('/', '-');
+}
+
+/**
+ * Get start year from academic year string
+ * @param {string} academicYear - "2025-2026" atau "2025/2026"
+ * @returns {number} 2025
+ */
+function getStartYear(academicYear) {
+    return parseInt(academicYear.split(/[-\/]/)[0]);
+}
+
+/**
+ * Get end year from academic year string
+ * @param {string} academicYear - "2025-2026" atau "2025/2026"
+ * @returns {number} 2026
+ */
+function getEndYear(academicYear) {
+    return parseInt(academicYear.split(/[-\/]/)[1]);
+}
+
+/**
+ * Get current semester based on date
+ * @returns {string} "Ganjil" atau "Genap"
+ */
 function getCurrentSemester() {
     const now = new Date();
     const month = now.getMonth() + 1;
@@ -106,30 +161,93 @@ function getCurrentSemester() {
     return (month >= 7 && month <= 12) ? 'Ganjil' : 'Genap';
 }
 
-// Hari Libur Nasional Tetap (Baku)
+// ============================================
+// HARI LIBUR
+// ============================================
+
+// Hari Libur Nasional Tetap (Baku) - format MM-DD
 const HARI_LIBUR_BAKU = [
     { tanggal: '01-01', nama: 'Tahun Baru Masehi' },
     { tanggal: '05-01', nama: 'Hari Buruh Internasional' },
     { tanggal: '06-01', nama: 'Hari Lahir Pancasila' },
     { tanggal: '08-17', nama: 'Hari Kemerdekaan RI' },
-    { tanggal: '12-25', nama: 'Hari Natal' }
+    { tanggal: '12-25', nama: 'Hari Natal' },
+    { tanggal: '12-26', nama: 'Cuti Bersama Natal' }
 ];
 
-// Hari Libur Default Tidak Tetap (Bisa diubah)
+/**
+ * Get default variable holidays for academic year
+ * @param {string} tahunAjar - Format "2025-2026"
+ * @returns {Array} Array of holiday objects
+ */
 function getDefaultLiburTidakTetap(tahunAjar) {
-    const tahunAwal = parseInt(tahunAjar.split('/')[0]);
+    const tahunAwal = getStartYear(tahunAjar);
+    const tahunAkhir = getEndYear(tahunAjar);
+    
     return [
-        { tanggal: `${tahunAwal}-01-22`, nama: 'Tahun Baru Imlek' },
-        { tanggal: `${tahunAwal}-03-29`, nama: 'Hari Raya Nyepi' },
-        { tanggal: `${tahunAwal}-03-31`, nama: 'Idul Fitri 1446 H' },
-        { tanggal: `${tahunAwal}-04-01`, nama: 'Idul Fitri 1446 H' },
-        { tanggal: `${tahunAwal}-04-18`, nama: 'Jumat Agung' },
-        { tanggal: `${tahunAwal}-05-12`, nama: 'Hari Raya Waisak' },
-        { tanggal: `${tahunAwal}-05-29`, nama: 'Kenaikan Isa Almasih' },
-        { tanggal: `${tahunAwal}-06-07`, nama: 'Idul Adha 1446 H' },
-        { tanggal: `${tahunAwal}-06-27`, nama: 'Tahun Baru Hijriyah 1447 H' },
-        { tanggal: `${tahunAwal}-09-05`, nama: 'Maulid Nabi Muhammad SAW' },
+        // Semester Ganjil (tahun awal)
+        { tanggal: `${tahunAwal}-07-14`, nama: 'Libur Sebelum Tahun Ajaran Baru' },
+        { tanggal: `${tahunAwal}-08-10`, nama: 'Hari Raya Kurban (perkiraan)' },
+        { tanggal: `${tahunAwal}-08-11`, nama: 'Cuti Bersama Idul Adha' },
+        { tanggal: `${tahunAwal}-09-01`, nama: 'Tahun Baru Hijriyah (perkiraan)' },
+        { tanggal: `${tahunAwal}-11-10`, nama: 'Maulid Nabi Muhammad SAW (perkiraan)' },
+        // Semester Genap (tahun akhir)
+        { tanggal: `${tahunAkhir}-01-29`, nama: 'Tahun Baru Imlek (perkiraan)' },
+        { tanggal: `${tahunAkhir}-03-14`, nama: 'Hari Raya Nyepi' },
+        { tanggal: `${tahunAkhir}-03-29`, nama: 'Wafat Isa Al-Masih' },
+        { tanggal: `${tahunAkhir}-03-31`, nama: 'Hari Raya Idul Fitri (perkiraan)' },
+        { tanggal: `${tahunAkhir}-04-01`, nama: 'Hari Raya Idul Fitri (perkiraan)' },
+        { tanggal: `${tahunAkhir}-04-02`, nama: 'Cuti Bersama Idul Fitri' },
+        { tanggal: `${tahunAkhir}-04-03`, nama: 'Cuti Bersama Idul Fitri' },
+        { tanggal: `${tahunAkhir}-04-04`, nama: 'Cuti Bersama Idul Fitri' },
+        { tanggal: `${tahunAkhir}-05-01`, nama: 'Hari Buruh' },
+        { tanggal: `${tahunAkhir}-05-12`, nama: 'Hari Raya Waisak (perkiraan)' },
+        { tanggal: `${tahunAkhir}-05-29`, nama: 'Kenaikan Isa Almasih' }
     ];
+}
+
+/**
+ * Check if a date is a holiday
+ * @param {Date} date - Date object
+ * @param {Array} holidays - Array of holiday date strings (YYYY-MM-DD)
+ * @returns {boolean}
+ */
+function isHoliday(date, holidays = []) {
+    const dateStr = formatDateISO(date);
+    const mmdd = dateStr.substring(5); // MM-DD
+    
+    // Check fixed holidays
+    if (HARI_LIBUR_BAKU.some(h => h.tanggal === mmdd)) {
+        return true;
+    }
+    
+    // Check variable holidays
+    if (holidays.includes(dateStr)) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Check if date is Sunday
+ * @param {Date} date
+ * @returns {boolean}
+ */
+function isSunday(date) {
+    return date.getDay() === 0;
+}
+
+/**
+ * Format date to ISO string (YYYY-MM-DD)
+ * @param {Date} date
+ * @returns {string}
+ */
+function formatDateISO(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 console.log('Firebase Config Loaded Successfully');

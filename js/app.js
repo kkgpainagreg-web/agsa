@@ -118,11 +118,111 @@ function setupSemesterSelector() {
     });
 }
 
-// Get Selected Academic Year
+// ============================================
+// HELPER FUNCTIONS (di bagian atas app.js)
+// ============================================
+
+/**
+ * Get selected academic year in document ID format (2025-2026)
+ * @returns {string}
+ */
 function getSelectedAcademicYear() {
-    return document.getElementById('academicYearSelect').value;
+    const select = document.getElementById('academicYearSelect');
+    if (!select) return getAcademicYears()[0];
+    return select.value; // Already in "2025-2026" format
 }
 
+/**
+ * Get selected academic year for display (2025/2026)
+ * @returns {string}
+ */
+function getSelectedAcademicYearDisplay() {
+    return formatAcademicYearDisplay(getSelectedAcademicYear());
+}
+
+/**
+ * Get selected semester
+ * @returns {string}
+ */
+function getSelectedSemester() {
+    const select = document.getElementById('semesterSelect');
+    if (!select) return getCurrentSemester();
+    return select.value;
+}
+
+/**
+ * Setup Academic Year Selector
+ */
+function setupAcademicYearSelector() {
+    const select = document.getElementById('academicYearSelect');
+    if (!select) return;
+    
+    const years = getAcademicYears();
+    
+    select.innerHTML = years.map(year => `
+        <option value="${year}">${formatAcademicYearDisplay(year)}</option>
+    `).join('');
+    
+    // Load saved preference
+    const savedYear = localStorage.getItem('selectedAcademicYear');
+    if (savedYear && years.includes(savedYear)) {
+        select.value = savedYear;
+    }
+    
+    select.addEventListener('change', (e) => {
+        localStorage.setItem('selectedAcademicYear', e.target.value);
+        loadModule(currentModule);
+    });
+}
+
+/**
+ * Setup Semester Selector
+ */
+function setupSemesterSelector() {
+    const select = document.getElementById('semesterSelect');
+    if (!select) return;
+    
+    // Set current semester as default
+    const currentSem = getCurrentSemester();
+    
+    // Load saved preference
+    const savedSemester = localStorage.getItem('selectedSemester');
+    select.value = savedSemester || currentSem;
+    
+    select.addEventListener('change', (e) => {
+        localStorage.setItem('selectedSemester', e.target.value);
+        loadModule(currentModule);
+    });
+}
+
+/**
+ * Get all holidays as array of date strings
+ * @param {Object} calendarData
+ * @returns {Array<string>}
+ */
+function getAllHolidayDates(calendarData) {
+    if (!calendarData) return [];
+    
+    const holidays = [];
+    const tahunAjar = getSelectedAcademicYear();
+    const startYear = getStartYear(tahunAjar);
+    const endYear = getEndYear(tahunAjar);
+    
+    // Fixed holidays for both years
+    HARI_LIBUR_BAKU.forEach(h => {
+        holidays.push(`${startYear}-${h.tanggal}`);
+        holidays.push(`${endYear}-${h.tanggal}`);
+    });
+    
+    // Variable holidays
+    if (calendarData.variableHolidays) {
+        calendarData.variableHolidays.forEach(h => {
+            if (h.tanggal) holidays.push(h.tanggal);
+        });
+    }
+    
+    return holidays;
+}
 // Get Selected Semester
 function getSelectedSemester() {
     return document.getElementById('semesterSelect').value;
@@ -2509,7 +2609,7 @@ function renderATPDocument(subject, data) {
 function renderProta() {
     const contentArea = document.getElementById('contentArea');
     const subjects = currentUserData?.mataPelajaran || [];
-    const tahunAjar = getSelectedAcademicYear();
+    const tahunAjar = getSelectedAcademicYearDisplay();
     
     contentArea.innerHTML = `
         <div class="space-y-6">
@@ -2517,15 +2617,15 @@ function renderProta() {
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800">Program Tahunan (Prota)</h2>
+                        <h2 class="text-xl font-bold text-gray-800">Program Tahunan (PROTA)</h2>
                         <p class="text-gray-500 text-sm mt-1">Generate otomatis dari ATP dan Kalender Pendidikan</p>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="printElement('protaPrintArea', 'Prota')" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all">
+                        <button onclick="printProta()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all">
                             <i class="fas fa-print mr-2"></i>Cetak
                         </button>
-                        <button onclick="downloadProtaWord()" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
-                            <i class="fas fa-file-word mr-2"></i>Download
+                        <button onclick="downloadProtaCSV()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all">
+                            <i class="fas fa-file-csv mr-2"></i>Download CSV
                         </button>
                     </div>
                 </div>
@@ -2533,7 +2633,7 @@ function renderProta() {
 
             <!-- Filter -->
             <div class="bg-white rounded-xl shadow-sm p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
                         <select id="protaSubject" onchange="generateProta()" 
@@ -2550,6 +2650,12 @@ function renderProta() {
                             ${(JENJANG_PENDIDIKAN[currentUserData?.jenjang]?.kelas || []).map(k => `<option value="${k}">Kelas ${k}</option>`).join('')}
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rombel</label>
+                        <input type="text" id="protaRombel" value="A" onchange="generateProta()"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                            placeholder="A/B/C">
+                    </div>
                 </div>
             </div>
 
@@ -2558,7 +2664,7 @@ function renderProta() {
                 <div class="p-12 text-center">
                     <i class="fas fa-calendar-check text-6xl text-gray-300 mb-4"></i>
                     <h3 class="text-xl font-semibold text-gray-600">Pilih Mata Pelajaran dan Kelas</h3>
-                    <p class="text-gray-500 mt-2">Prota akan di-generate otomatis dari ATP</p>
+                    <p class="text-gray-500 mt-2">PROTA akan di-generate otomatis dari data CP/TP</p>
                 </div>
             </div>
         </div>
@@ -2568,8 +2674,15 @@ function renderProta() {
 async function generateProta() {
     const subject = document.getElementById('protaSubject').value;
     const kelas = document.getElementById('protaKelas').value;
+    const rombel = document.getElementById('protaRombel').value || 'A';
     
     if (!subject || !kelas) {
+        document.getElementById('protaContent').innerHTML = `
+            <div class="p-12 text-center">
+                <i class="fas fa-calendar-check text-6xl text-gray-300 mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-600">Pilih Mata Pelajaran dan Kelas</h3>
+            </div>
+        `;
         return;
     }
     
@@ -2599,31 +2712,42 @@ async function generateProta() {
             calendarData = calendarDoc.data();
         }
         
-        renderProtaDocument(subject, kelas, cpData, calendarData);
+        // Calculate weeks
+        let ganjilWeeks = 0, genapWeeks = 0;
+        
+        if (calendarData) {
+            const jenjang = currentUserData?.jenjang || 'SD';
+            const kelasAkhir = JENJANG_PENDIDIKAN[jenjang]?.kelasAkhir || 6;
+            const isKelasAkhir = parseInt(kelas) === kelasAkhir;
+            
+            // Get appropriate dates based on class type
+            const gStart = new Date(isKelasAkhir && calendarData.finalGanjilStart ? calendarData.finalGanjilStart : calendarData.ganjilStart);
+            const gEnd = new Date(isKelasAkhir && calendarData.finalGanjilEnd ? calendarData.finalGanjilEnd : calendarData.ganjilEnd);
+            const gnStart = new Date(isKelasAkhir && calendarData.finalGenapStart ? calendarData.finalGenapStart : calendarData.genapStart);
+            const gnEnd = new Date(isKelasAkhir && calendarData.finalGenapEnd ? calendarData.finalGenapEnd : calendarData.genapEnd);
+            
+            if (!isNaN(gStart) && !isNaN(gEnd)) {
+                ganjilWeeks = Math.ceil((gEnd - gStart) / (7 * 24 * 60 * 60 * 1000));
+            }
+            if (!isNaN(gnStart) && !isNaN(gnEnd)) {
+                genapWeeks = Math.ceil((gnEnd - gnStart) / (7 * 24 * 60 * 60 * 1000));
+            }
+        }
+        
+        renderProtaDocument(subject, kelas, rombel, cpData, calendarData, ganjilWeeks, genapWeeks);
+        
     } catch (error) {
         console.error('Error generating Prota:', error);
-        showToast('Gagal generate Prota', 'error');
+        showToast('Gagal generate PROTA: ' + error.message, 'error');
     }
     
     hideLoading();
 }
 
-function renderProtaDocument(subject, kelas, cpData, calendarData) {
+function renderProtaDocument(subject, kelas, rombel, cpData, calendarData, ganjilWeeks, genapWeeks) {
     const container = document.getElementById('protaContent');
-    const tahunAjar = getSelectedAcademicYear();
-    
-    // Calculate weeks per semester
-    let ganjilWeeks = 0, genapWeeks = 0;
-    
-    if (calendarData) {
-        const ganjilStart = new Date(calendarData.ganjilStart);
-        const ganjilEnd = new Date(calendarData.ganjilEnd);
-        const genapStart = new Date(calendarData.genapStart);
-        const genapEnd = new Date(calendarData.genapEnd);
-        
-        ganjilWeeks = Math.ceil((ganjilEnd - ganjilStart) / (7 * 24 * 60 * 60 * 1000));
-        genapWeeks = Math.ceil((genapEnd - genapStart) / (7 * 24 * 60 * 60 * 1000));
-    }
+    const tahunAjar = getSelectedAcademicYearDisplay();
+    const fase = getFaseFromKelas(kelas);
     
     // Group CP by semester
     const ganjilData = cpData.filter(item => item.Semester === 'Ganjil').sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
@@ -2633,115 +2757,191 @@ function renderProtaDocument(subject, kelas, cpData, calendarData) {
     const totalGanjilJP = ganjilData.reduce((sum, item) => sum + (parseInt(item.alokasiWaktu) || 2), 0);
     const totalGenapJP = genapData.reduce((sum, item) => sum + (parseInt(item.alokasiWaktu) || 2), 0);
     
+    // Group by Elemen (Bab)
+    const ganjilByElemen = groupByElemen(ganjilData);
+    const genapByElemen = groupByElemen(genapData);
+    
     container.innerHTML = `
-        <div id="protaPrintArea" class="p-6">
+        <div id="protaPrintArea" class="p-8" style="font-family: 'Times New Roman', serif;">
             <!-- Document Header -->
-            <div class="text-center mb-8">
-                <h1 class="text-2xl font-bold text-gray-800 mb-2">PROGRAM TAHUNAN (PROTA)</h1>
-                <div class="mt-4 text-left max-w-xl mx-auto">
-                    <table class="text-sm">
-                        <tr><td class="pr-4">Satuan Pendidikan</td><td>: ${currentUserData?.namaSekolah || '-'}</td></tr>
-                        <tr><td class="pr-4">Mata Pelajaran</td><td>: ${subject}</td></tr>
-                        <tr><td class="pr-4">Kelas</td><td>: ${kelas}</td></tr>
-                        <tr><td class="pr-4">Tahun Pelajaran</td><td>: ${tahunAjar}</td></tr>
-                    </table>
-                </div>
+            <div class="text-center mb-6">
+                <h1 class="text-lg font-bold" style="font-size: 14pt;">PROGRAM TAHUNAN (PROTA)</h1>
+                <h2 class="text-base font-bold" style="font-size: 12pt;">${subject.toUpperCase()}</h2>
             </div>
+
+            <!-- Identity Table -->
+            <table class="mb-6" style="font-size: 11pt;">
+                <tr>
+                    <td style="width: 150px; padding: 2px 0;">Satuan Pendidikan</td>
+                    <td style="width: 10px;">:</td>
+                    <td><strong>${currentUserData?.namaSekolah || '-'}</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Mata Pelajaran</td>
+                    <td>:</td>
+                    <td>${subject}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Fase / Kelas</td>
+                    <td>:</td>
+                    <td>Fase ${fase} / Kelas ${kelas} / ${rombel}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Tahun Pelajaran</td>
+                    <td>:</td>
+                    <td>${tahunAjar}</td>
+                </tr>
+            </table>
 
             <!-- Prota Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse border border-gray-300">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="border border-gray-300 px-3 py-2 text-center text-sm font-semibold w-24">Semester</th>
-                            <th class="border border-gray-300 px-3 py-2 text-center text-sm font-semibold w-12">No</th>
-                            <th class="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">Tujuan Pembelajaran / Materi Pokok</th>
-                            <th class="border border-gray-300 px-3 py-2 text-center text-sm font-semibold w-20">Alokasi Waktu (JP)</th>
-                            <th class="border border-gray-300 px-3 py-2 text-center text-sm font-semibold w-24">Keterangan</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Semester Ganjil -->
-                        ${ganjilData.length > 0 ? ganjilData.map((item, index) => `
-                            <tr>
-                                ${index === 0 ? `<td class="border border-gray-300 px-3 py-2 text-sm text-center font-medium" rowspan="${ganjilData.length}">Ganjil</td>` : ''}
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center">${index + 1}</td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm">
-                                    <p class="font-medium">${item.materiPokok || item.Elemen || '-'}</p>
-                                    <p class="text-gray-600 text-xs mt-1">${item['Tujuan Pembelajaran'] || '-'}</p>
-                                </td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center">${item.alokasiWaktu || 2}</td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center"></td>
-                            </tr>
-                        `).join('') : `
-                            <tr>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center font-medium">Ganjil</td>
-                                <td colspan="4" class="border border-gray-300 px-3 py-8 text-sm text-center text-gray-500">Belum ada data TP untuk semester ini</td>
-                            </tr>
-                        `}
-                        <tr class="bg-gray-50 font-medium">
-                            <td colspan="3" class="border border-gray-300 px-3 py-2 text-sm text-right">Jumlah JP Semester Ganjil</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center">${totalGanjilJP}</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center">${ganjilWeeks} minggu</td>
-                        </tr>
-                        
-                        <!-- Semester Genap -->
-                        ${genapData.length > 0 ? genapData.map((item, index) => `
-                            <tr>
-                                ${index === 0 ? `<td class="border border-gray-300 px-3 py-2 text-sm text-center font-medium" rowspan="${genapData.length}">Genap</td>` : ''}
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center">${index + 1}</td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm">
-                                    <p class="font-medium">${item.materiPokok || item.Elemen || '-'}</p>
-                                    <p class="text-gray-600 text-xs mt-1">${item['Tujuan Pembelajaran'] || '-'}</p>
-                                </td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center">${item.alokasiWaktu || 2}</td>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center"></td>
-                            </tr>
-                        `).join('') : `
-                            <tr>
-                                <td class="border border-gray-300 px-3 py-2 text-sm text-center font-medium">Genap</td>
-                                <td colspan="4" class="border border-gray-300 px-3 py-8 text-sm text-center text-gray-500">Belum ada data TP untuk semester ini</td>
-                            </tr>
-                        `}
-                        <tr class="bg-gray-50 font-medium">
-                            <td colspan="3" class="border border-gray-300 px-3 py-2 text-sm text-right">Jumlah JP Semester Genap</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center">${totalGenapJP}</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center">${genapWeeks} minggu</td>
-                        </tr>
-                        
-                        <!-- Total -->
-                        <tr class="bg-primary/10 font-bold">
-                            <td colspan="3" class="border border-gray-300 px-3 py-2 text-sm text-right">TOTAL JP TAHUN PELAJARAN</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center">${totalGanjilJP + totalGenapJP}</td>
-                            <td class="border border-gray-300 px-3 py-2 text-sm text-center"></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <table class="w-full border-collapse mb-6" style="font-size: 10pt;">
+                <thead>
+                    <tr style="background-color: #f0f0f0;">
+                        <th class="border border-gray-400 px-2 py-2 text-center" style="width: 5%;">No</th>
+                        <th class="border border-gray-400 px-2 py-2 text-center" style="width: 10%;">Semester</th>
+                        <th class="border border-gray-400 px-2 py-2 text-left" style="width: 25%;">Bab / Elemen</th>
+                        <th class="border border-gray-400 px-2 py-2 text-left" style="width: 50%;">Capaian Pembelajaran / Materi</th>
+                        <th class="border border-gray-400 px-2 py-2 text-center" style="width: 10%;">Alokasi JP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${renderProtaSemesterRows('Ganjil', ganjilByElemen)}
+                    <tr style="background-color: #e8f4fc;">
+                        <td colspan="4" class="border border-gray-400 px-3 py-2 text-right font-bold">Jumlah JP Semester Ganjil</td>
+                        <td class="border border-gray-400 px-3 py-2 text-center font-bold">${totalGanjilJP} JP</td>
+                    </tr>
+                    <tr><td colspan="5" class="py-2"></td></tr>
+                    ${renderProtaSemesterRows('Genap', genapByElemen)}
+                    <tr style="background-color: #e8f4fc;">
+                        <td colspan="4" class="border border-gray-400 px-3 py-2 text-right font-bold">Jumlah JP Semester Genap</td>
+                        <td class="border border-gray-400 px-3 py-2 text-center font-bold">${totalGenapJP} JP</td>
+                    </tr>
+                    <tr style="background-color: #d4edda;">
+                        <td colspan="4" class="border border-gray-400 px-3 py-2 text-right font-bold">TOTAL JP TAHUN PELAJARAN</td>
+                        <td class="border border-gray-400 px-3 py-2 text-center font-bold">${totalGanjilJP + totalGenapJP} JP</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Info Minggu Efektif -->
+            <div class="mb-8 p-4 bg-gray-50 rounded-lg" style="font-size: 10pt;">
+                <p><strong>Keterangan Minggu Efektif:</strong></p>
+                <ul class="list-disc list-inside mt-2">
+                    <li>Semester Ganjil: ± ${ganjilWeeks} minggu</li>
+                    <li>Semester Genap: ± ${genapWeeks} minggu</li>
+                </ul>
             </div>
 
-            <!-- Signature -->
-            <div class="mt-12 flex justify-between">
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Mengetahui,</p>
-                    <p class="text-sm text-gray-600">Kepala Sekolah</p>
-                    <div class="h-20"></div>
-                    <p class="text-sm font-semibold border-b border-gray-400 pb-1">${currentUserData?.namaKepalaSekolah || '.........................'}</p>
-                    <p class="text-sm text-gray-600">NIP. ${currentUserData?.nipKepalaSekolah || '.........................'}</p>
+            <!-- Signature Area -->
+            <div class="flex justify-between mt-12" style="font-size: 11pt;">
+                <div class="text-center" style="width: 45%;">
+                    <p>Mengetahui,</p>
+                    <p>Kepala Sekolah</p>
+                    <div style="height: 70px;"></div>
+                    <p class="font-bold" style="text-decoration: underline;">${currentUserData?.namaKepalaSekolah || '................................'}</p>
+                    <p>NIP. ${currentUserData?.nipKepalaSekolah || '................................'}</p>
                 </div>
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">${currentUserData?.kotaKabupaten || '...........'}, ${formatDateID(new Date())}</p>
-                    <p class="text-sm text-gray-600">Guru Mata Pelajaran</p>
-                    <div class="h-20"></div>
-                    <p class="text-sm font-semibold border-b border-gray-400 pb-1">${currentUserData?.displayName || '.........................'}</p>
-                    <p class="text-sm text-gray-600">NIP. ${currentUserData?.nip || '.........................'}</p>
+                <div class="text-center" style="width: 45%;">
+                    <p>${currentUserData?.kotaKabupaten || '..............'}, ${formatDateID(new Date())}</p>
+                    <p>Guru Mata Pelajaran</p>
+                    <div style="height: 70px;"></div>
+                    <p class="font-bold" style="text-decoration: underline;">${currentUserData?.displayName || '................................'}</p>
+                    <p>NIP. ${currentUserData?.nip || '................................'}</p>
                 </div>
             </div>
         </div>
     `;
+    
+    // Store data for export
+    window.protaData = { subject, kelas, rombel, ganjilByElemen, genapByElemen };
 }
 
+function groupByElemen(data) {
+    const grouped = {};
+    data.forEach(item => {
+        const elemen = item.Elemen || item.materiPokok || 'Lainnya';
+        if (!grouped[elemen]) {
+            grouped[elemen] = [];
+        }
+        grouped[elemen].push(item);
+    });
+    return grouped;
+}
+
+function renderProtaSemesterRows(semester, groupedData) {
+    let html = '';
+    let no = 1;
+    
+    Object.entries(groupedData).forEach(([elemen, items]) => {
+        const totalJP = items.reduce((sum, item) => sum + (parseInt(item.alokasiWaktu) || 2), 0);
+        
+        items.forEach((item, idx) => {
+            html += `<tr>`;
+            
+            // No and Semester columns (only first row of each elemen)
+            if (idx === 0) {
+                html += `<td rowspan="${items.length}" class="border border-gray-400 px-2 py-2 text-center align-top">${no}</td>`;
+                html += `<td rowspan="${items.length}" class="border border-gray-400 px-2 py-2 text-center align-top">${semester}</td>`;
+                html += `<td rowspan="${items.length}" class="border border-gray-400 px-2 py-2 text-left align-top font-medium">${elemen}</td>`;
+            }
+            
+            // TP/Materi
+            html += `<td class="border border-gray-400 px-2 py-2 text-left">${item['Tujuan Pembelajaran'] || '-'}</td>`;
+            
+            // JP (only first row shows total)
+            if (idx === 0) {
+                html += `<td rowspan="${items.length}" class="border border-gray-400 px-2 py-2 text-center align-top font-bold">${totalJP} JP</td>`;
+            }
+            
+            html += `</tr>`;
+        });
+        
+        no++;
+    });
+    
+    return html;
+}
+
+function printProta() {
+    printElement('protaPrintArea', 'Program Tahunan');
+}
+
+function downloadProtaCSV() {
+    if (!window.protaData) {
+        showToast('Generate PROTA terlebih dahulu', 'warning');
+        return;
+    }
+    
+    const { subject, kelas, ganjilByElemen, genapByElemen } = window.protaData;
+    const rows = [];
+    
+    // Add header
+    rows.push(['No', 'Semester', 'Bab/Elemen', 'Tujuan Pembelajaran', 'Alokasi JP']);
+    
+    let no = 1;
+    
+    // Ganjil
+    Object.entries(ganjilByElemen).forEach(([elemen, items]) => {
+        items.forEach(item => {
+            rows.push([no, 'Ganjil', elemen, item['Tujuan Pembelajaran'] || '', item.alokasiWaktu || 2]);
+        });
+        no++;
+    });
+    
+    // Genap
+    Object.entries(genapByElemen).forEach(([elemen, items]) => {
+        items.forEach(item => {
+            rows.push([no, 'Genap', elemen, item['Tujuan Pembelajaran'] || '', item.alokasiWaktu || 2]);
+        });
+        no++;
+    });
+    
+    const csv = rows.map(row => row.join(';')).join('\n');
+    downloadFile(csv, `PROTA_${subject}_Kelas${kelas}.csv`);
+    showToast('PROTA berhasil di-download', 'success');
+}
 // =====================================================
-// AI ASSISTANT MODULE
+// AI ASSISTANT MODULE (UPDATED - dengan Generate Mapel CSV)
 // =====================================================
 function renderAIAssistant() {
     const contentArea = document.getElementById('contentArea');
@@ -2756,7 +2956,25 @@ function renderAIAssistant() {
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold">AI Assistant</h2>
-                        <p class="text-purple-100 mt-1">Bantu generate prompt untuk mengolah materi menjadi format CSV</p>
+                        <p class="text-purple-100 mt-1">Bantu generate data untuk format CSV yang bisa diimport ke sistem</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-lightbulb text-blue-500 text-xl mt-0.5"></i>
+                    <div>
+                        <h4 class="font-semibold text-blue-800">Cara Menggunakan</h4>
+                        <ol class="text-sm text-blue-700 mt-2 space-y-1 list-decimal list-inside">
+                            <li>Pilih template prompt yang sesuai kebutuhan</li>
+                            <li>Klik "Copy" untuk menyalin prompt</li>
+                            <li>Paste ke ChatGPT, Claude, atau Gemini</li>
+                            <li>Ganti placeholder [...] dengan data Anda</li>
+                            <li>Copy hasil CSV dari AI</li>
+                            <li>Import ke aplikasi melalui menu terkait</li>
+                        </ol>
                     </div>
                 </div>
             </div>
@@ -2764,127 +2982,328 @@ function renderAIAssistant() {
             <!-- Prompt Templates -->
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <h3 class="font-semibold text-gray-800 mb-4">
-                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>Template Prompt
+                    <i class="fas fa-magic text-purple-500 mr-2"></i>Template Prompt
                 </h3>
                 
-                <div class="space-y-4">
-                    <!-- CP/TP Generator -->
-                    <div class="border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-start justify-between gap-4">
+                <div class="space-y-6">
+                    <!-- Generate Mapel CSV (NEW) -->
+                    <div class="border-2 border-purple-200 bg-purple-50 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
                             <div>
-                                <h4 class="font-medium text-gray-800">Generate CP/TP dari Materi</h4>
-                                <p class="text-sm text-gray-500 mt-1">Ubah materi mentah menjadi format CP/TP yang terstruktur</p>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-medium text-gray-800">Generate Mapel.csv (Pecah CP Jadi TP)</h4>
+                                    <span class="px-2 py-0.5 bg-purple-200 text-purple-800 rounded-full text-xs font-medium">Recommended</span>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">Pecah CP/Materi global menjadi 3-4 Tujuan Pembelajaran rinci yang siap diimport</p>
                             </div>
-                            <button onclick="copyPrompt('cptp')" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-secondary transition-all">
+                            <button onclick="copyPrompt('mapelcsv')" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-all">
+                                <i class="fas fa-copy mr-1"></i>Copy Prompt
+                            </button>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap border border-purple-200 max-h-64 overflow-y-auto" id="promptMapelCSV">Saya sedang menyusun Tujuan Pembelajaran (TP) Kurikulum Merdeka.
+
+Tolong pecah materi/CP global berikut ini menjadi 3 sampai 4 Tujuan Pembelajaran yang lebih spesifik, rinci, dan operasional (menggunakan Kata Kerja Operasional/KKO) untuk diajarkan dalam beberapa kali pertemuan.
+
+Mata Pelajaran: [NAMA MATA PELAJARAN]
+Fase: [FASE A/B/C/D/E/F]
+Kelas: [KELAS]
+Semester: [Ganjil/Genap]
+Elemen: [NAMA ELEMEN/BAB]
+
+Materi/CP Global:
+[MASUKKAN MATERI / CP GLOBAL DI SINI]
+
+Ketentuan:
+1. Setiap TP harus dimulai dengan "Peserta didik mampu..."
+2. Gunakan kata kerja operasional yang terukur (mengidentifikasi, menjelaskan, menganalisis, mempraktikkan, dll)
+3. TP harus spesifik dan dapat dicapai dalam 1-2 pertemuan
+4. Urutkan dari yang paling dasar ke yang lebih kompleks
+
+Sajikan hasil akhirnya SAJA dalam format CSV murni dengan pemisah titik koma (;) dengan urutan kolom persis seperti ini:
+Fase;Kelas;Semester;Elemen;Tujuan Pembelajaran
+
+Contoh output:
+Fase D;7;Ganjil;Akidah;Peserta didik mampu mengidentifikasi pengertian dan dalil tentang iman kepada Allah.
+Fase D;7;Ganjil;Akidah;Peserta didik mampu menjelaskan bukti-bukti keberadaan Allah melalui ciptaan-Nya.
+Fase D;7;Ganjil;Akidah;Peserta didik mampu menganalisis dampak beriman kepada Allah dalam kehidupan sehari-hari.
+Fase D;7;Ganjil;Akidah;Peserta didik mampu mempraktikkan perilaku yang mencerminkan keimanan kepada Allah.</div>
+                        <div class="mt-3 flex items-center gap-2 text-xs text-purple-600">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Output bisa langsung diimport ke menu CP & TP</span>
+                        </div>
+                    </div>
+
+                    <!-- Generate Full Mapel (Multiple CP) -->
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Generate Mapel Lengkap (Semua Elemen)</h4>
+                                <p class="text-sm text-gray-500 mt-1">Generate TP untuk seluruh elemen/bab dalam 1 semester sekaligus</p>
+                            </div>
+                            <button onclick="copyPrompt('mapelfull')" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
                                 <i class="fas fa-copy mr-1"></i>Copy
                             </button>
                         </div>
-                        <div class="mt-3 bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap" id="promptCPTP">Saya memiliki materi pembelajaran berikut:
+                        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="promptMapelFull">Saya sedang menyusun Tujuan Pembelajaran (TP) Kurikulum Merdeka untuk 1 semester penuh.
 
-[PASTE MATERI ANDA DI SINI]
+Mata Pelajaran: [NAMA MATA PELAJARAN]
+Fase: [FASE]
+Kelas: [KELAS]  
+Semester: [Ganjil/Genap]
 
-Tolong bantu saya mengubah materi di atas menjadi format CSV dengan struktur:
+Berikut daftar Elemen/Bab dan Capaian Pembelajaran (CP) global untuk semester ini:
+
+1. Elemen: [NAMA ELEMEN 1]
+   CP: [CP GLOBAL 1]
+
+2. Elemen: [NAMA ELEMEN 2]
+   CP: [CP GLOBAL 2]
+
+3. Elemen: [NAMA ELEMEN 3]
+   CP: [CP GLOBAL 3]
+
+(tambahkan sesuai kebutuhan)
+
+Tolong pecah SETIAP CP di atas menjadi 3-4 Tujuan Pembelajaran yang spesifik dan operasional.
+
+Ketentuan:
+1. Setiap TP dimulai dengan "Peserta didik mampu..."
+2. Gunakan KKO yang terukur
+3. Total JP per elemen sekitar 4-8 JP
+4. Urutkan dari dasar ke kompleks
+
+Sajikan hasil akhirnya SAJA dalam format CSV murni (pemisah ;) dengan kolom:
 Fase;Kelas;Semester;Elemen;Tujuan Pembelajaran
 
-Dengan ketentuan:
-- Fase A untuk kelas 1-2
-- Fase B untuk kelas 3-4
-- Fase C untuk kelas 5-6
-- Fase D untuk kelas 7-9
-- Fase E untuk kelas 10
-- Fase F untuk kelas 11-12
+Jangan sertakan header, langsung data saja.</div>
+                    </div>
 
-Pastikan setiap Tujuan Pembelajaran:
+                    <!-- CP/TP dari Materi Mentah -->
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Generate CP/TP dari Materi Mentah</h4>
+                                <p class="text-sm text-gray-500 mt-1">Ubah materi mentah (dari buku/silabus) menjadi format CP/TP terstruktur</p>
+                            </div>
+                            <button onclick="copyPrompt('cptp')" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
+                                <i class="fas fa-copy mr-1"></i>Copy
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="promptCPTP">Saya memiliki materi pembelajaran berikut yang perlu diubah menjadi Tujuan Pembelajaran Kurikulum Merdeka:
+
+[PASTE MATERI ANDA DI SINI - bisa dari buku, silabus, atau catatan]
+
+Informasi tambahan:
+- Mata Pelajaran: [NAMA MAPEL]
+- Jenjang: [SD/SMP/SMA]
+- Kelas: [1-12]
+- Semester: [Ganjil/Genap]
+
+Tolong bantu saya:
+1. Identifikasi elemen/bab dari materi tersebut
+2. Rumuskan Tujuan Pembelajaran yang spesifik dan terukur
+3. Setiap elemen pecah menjadi 2-4 TP
+
+Ketentuan Fase:
+- Fase A: Kelas 1-2 SD
+- Fase B: Kelas 3-4 SD  
+- Fase C: Kelas 5-6 SD
+- Fase D: Kelas 7-9 SMP
+- Fase E: Kelas 10 SMA
+- Fase F: Kelas 11-12 SMA
+
+Setiap TP harus:
 1. Dimulai dengan "Peserta didik mampu..."
 2. Menggunakan kata kerja operasional yang dapat diukur
 3. Jelas dan spesifik
 
-Output dalam format CSV saja tanpa penjelasan tambahan.</div>
+Output dalam format CSV (pemisah ;) dengan kolom:
+Fase;Kelas;Semester;Elemen;Tujuan Pembelajaran
+
+Output CSV saja tanpa penjelasan.</div>
                     </div>
 
                     <!-- Soal Generator -->
-                    <div class="border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-start justify-between gap-4">
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
                             <div>
                                 <h4 class="font-medium text-gray-800">Generate Bank Soal</h4>
-                                <p class="text-sm text-gray-500 mt-1">Buat soal-soal berdasarkan TP</p>
+                                <p class="text-sm text-gray-500 mt-1">Buat soal-soal berdasarkan Tujuan Pembelajaran</p>
                             </div>
-                            <button onclick="copyPrompt('soal')" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-secondary transition-all">
+                            <button onclick="copyPrompt('soal')" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
                                 <i class="fas fa-copy mr-1"></i>Copy
                             </button>
                         </div>
-                        <div class="mt-3 bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap" id="promptSoal">Berdasarkan Tujuan Pembelajaran berikut:
-
-[PASTE TP ANDA DI SINI]
-
-Buatkan soal-soal dalam format CSV dengan struktur:
-Nomor;Jenis;Pertanyaan;PilihanA;PilihanB;PilihanC;PilihanD;Kunci;Pembahasan
-
-Dengan ketentuan:
-- Jenis: PG (Pilihan Ganda) atau Uraian
-- Untuk PG, sediakan 4 pilihan (A-D) dan kunci jawaban
-- Untuk Uraian, kolom PilihanA-D dan Kunci dikosongkan
-- Tingkat kesulitan bervariasi (C1-C6 Taksonomi Bloom)
-- Sertakan pembahasan singkat
-
-Buatkan minimal 5 soal PG dan 2 soal Uraian.</div>
-                    </div>
-
-                    <!-- LKPD Generator -->
-                    <div class="border border-gray-200 rounded-xl p-4">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <h4 class="font-medium text-gray-800">Generate LKPD</h4>
-                                <p class="text-sm text-gray-500 mt-1">Buat Lembar Kerja Peserta Didik berdasarkan TP</p>
-                            </div>
-                            <button onclick="copyPrompt('lkpd')" class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm hover:bg-secondary transition-all">
-                                <i class="fas fa-copy mr-1"></i>Copy
-                            </button>
-                        </div>
-                        <div class="mt-3 bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap" id="promptLKPD">Berdasarkan Tujuan Pembelajaran berikut:
+                        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="promptSoal">Berdasarkan Tujuan Pembelajaran berikut:
 
 [PASTE TP ANDA DI SINI]
 
 Mata Pelajaran: [NAMA MAPEL]
 Kelas: [KELAS]
 
-Buatkan LKPD (Lembar Kerja Peserta Didik) dengan struktur:
-1. Identitas LKPD (Judul, Mata Pelajaran, Kelas, Alokasi Waktu)
-2. Kompetensi/TP yang akan dicapai
-3. Petunjuk pengerjaan
-4. Kegiatan pembelajaran (aktivitas siswa)
-5. Lembar kerja/tugas
-6. Kolom refleksi
+Buatkan soal-soal dalam format CSV dengan struktur:
+Nomor;Jenis;Pertanyaan;PilihanA;PilihanB;PilihanC;PilihanD;Kunci;Pembahasan
 
-Gunakan bahasa yang mudah dipahami siswa sesuai jenjangnya.
-Untuk mata pelajaran PAI, sertakan teks Arab jika diperlukan.</div>
+Ketentuan:
+- Jenis: PG (Pilihan Ganda) atau Uraian
+- Untuk PG: sediakan 4 pilihan (A-D) dan kunci jawaban
+- Untuk Uraian: kolom PilihanA-D dan Kunci dikosongkan
+- Tingkat kesulitan bervariasi sesuai Taksonomi Bloom (C1-C6)
+- Sertakan pembahasan singkat untuk setiap soal
+- Untuk PAI: sertakan dalil Al-Qur'an/Hadis jika relevan
+
+Buatkan:
+- 5 soal Pilihan Ganda
+- 2 soal Uraian
+
+Output CSV saja tanpa header.</div>
+                    </div>
+
+                    <!-- LKPD Generator -->
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Generate LKPD</h4>
+                                <p class="text-sm text-gray-500 mt-1">Buat Lembar Kerja Peserta Didik berdasarkan TP</p>
+                            </div>
+                            <button onclick="copyPrompt('lkpd')" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
+                                <i class="fas fa-copy mr-1"></i>Copy
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="promptLKPD">Berdasarkan Tujuan Pembelajaran berikut:
+
+[PASTE TP ANDA DI SINI]
+
+Mata Pelajaran: [NAMA MAPEL]
+Kelas: [KELAS]
+Alokasi Waktu: [JUMLAH JP] x [DURASI] menit
+
+Buatkan LKPD (Lembar Kerja Peserta Didik) dengan struktur:
+
+1. IDENTITAS LKPD
+   - Judul yang menarik
+   - Mata Pelajaran, Kelas, Semester
+   - Alokasi Waktu
+
+2. TUJUAN PEMBELAJARAN
+   - TP yang akan dicapai
+
+3. PETUNJUK PENGERJAAN
+   - Langkah-langkah jelas untuk siswa
+
+4. KEGIATAN PEMBELAJARAN
+   - Kegiatan 1: Mengamati/Membaca (stimulus)
+   - Kegiatan 2: Menanya/Berdiskusi
+   - Kegiatan 3: Mengerjakan tugas
+
+5. LEMBAR KERJA
+   - Soal/tugas yang harus dikerjakan siswa
+   - Ruang untuk jawaban
+
+6. REFLEKSI DIRI
+   - Pertanyaan refleksi untuk siswa
+
+Ketentuan:
+- Bahasa sesuai jenjang (mudah dipahami siswa)
+- Untuk PAI: sertakan teks Arab jika diperlukan dengan format: [Arab: النص العربي]
+- Desain yang menarik dengan instruksi jelas</div>
+                    </div>
+
+                    <!-- Data Siswa Generator -->
+                    <div class="border border-gray-200 rounded-xl p-5">
+                        <div class="flex items-start justify-between gap-4 mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Format Data Siswa untuk Import</h4>
+                                <p class="text-sm text-gray-500 mt-1">Panduan format CSV untuk import data siswa</p>
+                            </div>
+                            <button onclick="copyPrompt('siswa')" class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm font-medium transition-all">
+                                <i class="fas fa-copy mr-1"></i>Copy
+                            </button>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 font-mono text-sm text-gray-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="promptSiswa">Format CSV untuk import data siswa:
+
+nisn;nama;jenis_kelamin;kelas;rombel
+
+Contoh:
+0012345678;Ahmad Fauzi;L;7;A
+0012345679;Siti Aisyah;P;7;A
+0012345680;Budi Santoso;L;7;B
+0012345681;Dewi Lestari;P;7;B
+
+Keterangan:
+- nisn: Nomor Induk Siswa Nasional (10 digit)
+- nama: Nama lengkap siswa
+- jenis_kelamin: L (Laki-laki) atau P (Perempuan)
+- kelas: Angka kelas (1-12)
+- rombel: Huruf rombel (A, B, C, dst)
+
+Tips:
+1. Buka file Excel data siswa Anda
+2. Pastikan kolom sesuai urutan di atas
+3. Simpan sebagai CSV (Save As > CSV UTF-8)
+4. Atau gunakan Google Spreadsheet > File > Share > Publish to web > CSV</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Tips -->
-            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
-                <h3 class="font-semibold text-blue-800 mb-3">
-                    <i class="fas fa-info-circle mr-2"></i>Tips Penggunaan
+            <!-- Quick Tips -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <h4 class="font-semibold text-green-800 mb-2">
+                        <i class="fas fa-check-circle mr-2"></i>Tips Prompt Efektif
+                    </h4>
+                    <ul class="text-sm text-green-700 space-y-1">
+                        <li>• Berikan konteks lengkap (mapel, kelas, semester)</li>
+                        <li>• Jelaskan format output yang diinginkan</li>
+                        <li>• Minta AI untuk tidak menambahkan penjelasan</li>
+                        <li>• Review dan edit hasil sebelum import</li>
+                    </ul>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <h4 class="font-semibold text-yellow-800 mb-2">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Perhatian
+                    </h4>
+                    <ul class="text-sm text-yellow-700 space-y-1">
+                        <li>• Selalu periksa keakuratan hasil AI</li>
+                        <li>• Sesuaikan dengan kondisi sekolah/daerah</li>
+                        <li>• Pastikan format CSV benar sebelum import</li>
+                        <li>• Backup data sebelum import massal</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="font-semibold text-gray-800 mb-4">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>Rekomendasi AI
                 </h3>
-                <ul class="space-y-2 text-sm text-blue-700">
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check-circle mt-0.5"></i>
-                        <span>Copy prompt dan paste ke ChatGPT, Claude, atau Gemini</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check-circle mt-0.5"></i>
-                        <span>Ganti placeholder [PASTE...] dengan data Anda</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check-circle mt-0.5"></i>
-                        <span>Copy hasil CSV dari AI dan import ke aplikasi</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <i class="fas fa-check-circle mt-0.5"></i>
-                        <span>Review dan edit hasil sesuai kebutuhan sebelum menyimpan</span>
-                    </li>
-                </ul>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <a href="https://chat.openai.com" target="_blank" class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-green-300 hover:bg-green-50 transition-all">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" alt="ChatGPT" class="w-10 h-10">
+                        <div>
+                            <p class="font-medium text-gray-800">ChatGPT</p>
+                            <p class="text-xs text-gray-500">OpenAI</p>
+                        </div>
+                    </a>
+                    <a href="https://claude.ai" target="_blank" class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-orange-300 hover:bg-orange-50 transition-all">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <span class="text-orange-600 font-bold">C</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">Claude</p>
+                            <p class="text-xs text-gray-500">Anthropic</p>
+                        </div>
+                    </a>
+                    <a href="https://gemini.google.com" target="_blank" class="flex items-center gap-3 p-4 border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold">G</span>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-800">Gemini</p>
+                            <p class="text-xs text-gray-500">Google</p>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     `;
@@ -2892,22 +3311,46 @@ Untuk mata pelajaran PAI, sertakan teks Arab jika diperlukan.</div>
 
 function copyPrompt(type) {
     let text = '';
+    let promptId = '';
     
-    if (type === 'cptp') {
-        text = document.getElementById('promptCPTP').textContent;
-    } else if (type === 'soal') {
-        text = document.getElementById('promptSoal').textContent;
-    } else if (type === 'lkpd') {
-        text = document.getElementById('promptLKPD').textContent;
+    switch(type) {
+        case 'mapelcsv':
+            promptId = 'promptMapelCSV';
+            break;
+        case 'mapelfull':
+            promptId = 'promptMapelFull';
+            break;
+        case 'cptp':
+            promptId = 'promptCPTP';
+            break;
+        case 'soal':
+            promptId = 'promptSoal';
+            break;
+        case 'lkpd':
+            promptId = 'promptLKPD';
+            break;
+        case 'siswa':
+            promptId = 'promptSiswa';
+            break;
+        default:
+            return;
     }
     
+    text = document.getElementById(promptId).textContent;
+    
     navigator.clipboard.writeText(text).then(() => {
-        showToast('Prompt berhasil dicopy!', 'success');
+        showToast('Prompt berhasil dicopy! Paste ke AI pilihan Anda.', 'success');
     }).catch(() => {
-        showToast('Gagal copy prompt', 'error');
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Prompt berhasil dicopy!', 'success');
     });
 }
-
 // =====================================================
 // STUDENTS MODULE
 // =====================================================
@@ -3215,12 +3658,507 @@ async function deleteStudent(studentId) {
 }
 
 // =====================================================
-// PLACEHOLDER FOR PREMIUM MODULES
+// PROMES MODULE (dengan Tanggal Pertemuan Reel)
 // =====================================================
 function renderPromes() {
-    renderPremiumPlaceholder('Promes', 'Program Semester dengan detail tanggal pertemuan');
+    const contentArea = document.getElementById('contentArea');
+    const subjects = currentUserData?.mataPelajaran || [];
+    const semester = getSelectedSemester();
+    const tahunAjar = getSelectedAcademicYearDisplay();
+    
+    contentArea.innerHTML = `
+        <div class="space-y-6">
+            <!-- Header -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Program Semester (PROMES)</h2>
+                        <p class="text-gray-500 text-sm mt-1">
+                            Sinkron dengan Kalender, Jadwal, dan TP - <strong>Semester ${semester}</strong>
+                        </p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="printPromes()" class="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-all">
+                            <i class="fas fa-print mr-2"></i>Cetak
+                        </button>
+                        <button onclick="downloadPromesCSV()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-all">
+                            <i class="fas fa-file-csv mr-2"></i>Download CSV
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter -->
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mata Pelajaran</label>
+                        <select id="promesSubject" onchange="generatePromes()" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                            <option value="">Pilih Mata Pelajaran...</option>
+                            ${subjects.map(s => `<option value="${s.nama}">${s.nama}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Kelas</label>
+                        <select id="promesKelas" onchange="generatePromes()" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                            <option value="">Pilih Kelas...</option>
+                            ${(JENJANG_PENDIDIKAN[currentUserData?.jenjang]?.kelas || []).map(k => `<option value="${k}">Kelas ${k}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Rombel</label>
+                        <input type="text" id="promesRombel" value="A" onchange="generatePromes()"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Hari Mengajar</label>
+                        <select id="promesHari" onchange="generatePromes()" 
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                            <option value="">Pilih dari Jadwal...</option>
+                            ${HARI.map(h => `<option value="${h}">${h}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Alokasi JP per Pertemuan</label>
+                        <input type="number" id="promesJPPertemuan" value="4" min="1" max="8" onchange="generatePromes()"
+                            class="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="loadScheduleForPromes()" class="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200 transition-all">
+                            <i class="fas fa-sync mr-2"></i>Load dari Jadwal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Promes Content -->
+            <div id="promesContent" class="bg-white rounded-xl shadow-sm overflow-x-auto">
+                <div class="p-12 text-center">
+                    <i class="fas fa-calendar-week text-6xl text-gray-300 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600">Pilih Mata Pelajaran, Kelas, dan Hari Mengajar</h3>
+                    <p class="text-gray-500 mt-2">PROMES akan di-generate dengan distribusi tanggal pertemuan yang reel</p>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
+async function loadScheduleForPromes() {
+    const subject = document.getElementById('promesSubject').value;
+    const kelas = document.getElementById('promesKelas').value;
+    
+    if (!subject || !kelas) {
+        showToast('Pilih Mata Pelajaran dan Kelas terlebih dahulu', 'warning');
+        return;
+    }
+    
+    try {
+        const tahunAjar = getSelectedAcademicYear();
+        const scheduleDoc = await db.collection('users').doc(currentUser.uid)
+            .collection('schedules').doc(tahunAjar).get();
+        
+        if (scheduleDoc.exists) {
+            const data = scheduleDoc.data();
+            const entries = (data.entries || []).filter(e => 
+                e.mataPelajaran === subject && e.kelas == kelas
+            );
+            
+            if (entries.length > 0) {
+                // Get the day from schedule
+                const firstEntry = entries[0];
+                document.getElementById('promesHari').value = firstEntry.hari;
+                document.getElementById('promesJPPertemuan').value = firstEntry.jamPelajaran || 4;
+                document.getElementById('promesRombel').value = firstEntry.rombel || 'A';
+                
+                generatePromes();
+                showToast('Data jadwal berhasil dimuat', 'success');
+            } else {
+                showToast('Tidak ditemukan jadwal untuk mata pelajaran dan kelas ini', 'warning');
+            }
+        }
+    } catch (error) {
+        console.error('Error loading schedule:', error);
+        showToast('Gagal memuat jadwal', 'error');
+    }
+}
+
+async function generatePromes() {
+    const subject = document.getElementById('promesSubject').value;
+    const kelas = document.getElementById('promesKelas').value;
+    const rombel = document.getElementById('promesRombel').value || 'A';
+    const hariMengajar = document.getElementById('promesHari').value;
+    const jpPerPertemuan = parseInt(document.getElementById('promesJPPertemuan').value) || 4;
+    const semester = getSelectedSemester();
+    
+    if (!subject || !kelas || !hariMengajar) {
+        return;
+    }
+    
+    showLoading();
+    
+    try {
+        const tahunAjar = getSelectedAcademicYear();
+        const docId = subject.replace(/[\/\\]/g, '_');
+        const startYear = getStartYear(tahunAjar);
+        
+        // Load CP data
+        const cpDoc = await db.collection('users').doc(currentUser.uid)
+            .collection('curriculum').doc(docId).get();
+        
+        // Load Calendar data
+        const calendarDoc = await db.collection('users').doc(currentUser.uid)
+            .collection('calendars').doc(tahunAjar).get();
+        
+        let cpData = [];
+        let calendarData = null;
+        
+        if (cpDoc.exists) {
+            cpData = cpDoc.data().items || [];
+            cpData = cpData.filter(item => item.Kelas == kelas && item.Semester === semester);
+            cpData.sort((a, b) => (a.urutan || 0) - (b.urutan || 0));
+        }
+        
+        if (calendarDoc.exists) {
+            calendarData = calendarDoc.data();
+        }
+        
+        if (cpData.length === 0) {
+            document.getElementById('promesContent').innerHTML = `
+                <div class="p-12 text-center">
+                    <i class="fas fa-exclamation-triangle text-6xl text-yellow-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-600">Data TP Belum Tersedia</h3>
+                    <p class="text-gray-500 mt-2">Silakan input CP/TP untuk semester ${semester} di menu CP & TP</p>
+                    <button onclick="loadModule('curriculum')" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg">
+                        <i class="fas fa-arrow-right mr-2"></i>Ke Menu CP & TP
+                    </button>
+                </div>
+            `;
+            hideLoading();
+            return;
+        }
+        
+        // Get semester dates
+        const jenjang = currentUserData?.jenjang || 'SD';
+        const kelasAkhir = JENJANG_PENDIDIKAN[jenjang]?.kelasAkhir || 6;
+        const isKelasAkhir = parseInt(kelas) === kelasAkhir;
+        
+        let semesterStart, semesterEnd;
+        
+        if (semester === 'Ganjil') {
+            semesterStart = isKelasAkhir && calendarData?.finalGanjilStart 
+                ? calendarData.finalGanjilStart 
+                : (calendarData?.ganjilStart || `${startYear}-07-15`);
+            semesterEnd = isKelasAkhir && calendarData?.finalGanjilEnd 
+                ? calendarData.finalGanjilEnd 
+                : (calendarData?.ganjilEnd || `${startYear}-12-20`);
+        } else {
+            semesterStart = isKelasAkhir && calendarData?.finalGenapStart 
+                ? calendarData.finalGenapStart 
+                : (calendarData?.genapStart || `${startYear + 1}-01-06`);
+            semesterEnd = isKelasAkhir && calendarData?.finalGenapEnd 
+                ? calendarData.finalGenapEnd 
+                : (calendarData?.genapEnd || `${startYear + 1}-06-20`);
+        }
+        
+        // Get all holidays
+        const holidays = getAllHolidayDates(calendarData);
+        
+        // Get all teaching dates for this day
+        const dayIndex = getDayIndex(hariMengajar);
+        const teachingDates = getTeachingDates([dayIndex], semesterStart, semesterEnd, holidays);
+        
+        // Distribute TP across teaching dates
+        const promesData = distributeTPToMeetings(cpData, teachingDates, jpPerPertemuan);
+        
+        renderPromesDocument(
+            subject, kelas, rombel, semester, hariMengajar, jpPerPertemuan,
+            promesData, teachingDates, semesterStart, semesterEnd, startYear, isKelasAkhir
+        );
+        
+    } catch (error) {
+        console.error('Error generating Promes:', error);
+        showToast('Gagal generate PROMES: ' + error.message, 'error');
+    }
+    
+    hideLoading();
+}
+
+/**
+ * Distribute TP to meetings based on JP allocation
+ * @param {Array} tpData - Array of TP objects
+ * @param {Array} teachingDates - Array of Date objects
+ * @param {number} jpPerMeeting - JP per meeting
+ * @returns {Array} Array of meeting allocations
+ */
+function distributeTPToMeetings(tpData, teachingDates, jpPerMeeting) {
+    const meetings = [];
+    let dateIndex = 0;
+    let remainingJPInMeeting = jpPerMeeting;
+    
+    // Skip first few dates (biasanya untuk orientasi)
+    dateIndex = Math.min(1, teachingDates.length - 1);
+    
+    tpData.forEach(tp => {
+        let remainingTPJP = parseInt(tp.alokasiWaktu) || 2;
+        const tpMeetings = [];
+        
+        while (remainingTPJP > 0 && dateIndex < teachingDates.length) {
+            if (remainingJPInMeeting <= 0) {
+                dateIndex++;
+                remainingJPInMeeting = jpPerMeeting;
+                if (dateIndex >= teachingDates.length) break;
+            }
+            
+            const currentDate = teachingDates[dateIndex];
+            const jpToAllocate = Math.min(remainingTPJP, remainingJPInMeeting);
+            
+            tpMeetings.push({
+                date: currentDate,
+                jp: jpToAllocate
+            });
+            
+            remainingTPJP -= jpToAllocate;
+            remainingJPInMeeting -= jpToAllocate;
+        }
+        
+        meetings.push({
+            tp: tp,
+            allocations: tpMeetings,
+            totalJP: parseInt(tp.alokasiWaktu) || 2
+        });
+    });
+    
+    return meetings;
+}
+
+function renderPromesDocument(subject, kelas, rombel, semester, hari, jpPerPertemuan, promesData, teachingDates, semesterStart, semesterEnd, startYear, isKelasAkhir) {
+    const container = document.getElementById('promesContent');
+    const tahunAjar = getSelectedAcademicYearDisplay();
+    const fase = getFaseFromKelas(kelas);
+    
+    // Get months for this semester
+    const months = getMonthsInSemester(semester, startYear);
+    
+    // Build header with weeks per month
+    let headerRow1 = `
+        <th rowspan="2" class="border border-gray-400 px-2 py-2 text-center bg-gray-100" style="width: 4%;">No</th>
+        <th rowspan="2" class="border border-gray-400 px-2 py-2 text-left bg-gray-100" style="width: 30%;">Capaian / Tujuan Pembelajaran</th>
+        <th rowspan="2" class="border border-gray-400 px-2 py-2 text-center bg-gray-100" style="width: 4%;">JP</th>
+    `;
+    let headerRow2 = '';
+    
+    months.forEach(m => {
+        headerRow1 += `<th colspan="5" class="border border-gray-400 px-2 py-1 text-center bg-gray-100">${m.shortName}</th>`;
+        for (let w = 1; w <= 5; w++) {
+            headerRow2 += `<th class="border border-gray-400 px-1 py-1 text-center bg-gray-50" style="width: 2%;">${w}</th>`;
+        }
+    });
+    
+    // Build body rows
+    let bodyRows = '';
+    let no = 1;
+    
+    promesData.forEach(item => {
+        const tp = item.tp;
+        const allocations = item.allocations;
+        
+        bodyRows += `<tr>`;
+        bodyRows += `<td class="border border-gray-400 px-2 py-2 text-center align-top">${no}</td>`;
+        bodyRows += `<td class="border border-gray-400 px-2 py-2 text-left align-top">
+            <div class="font-medium text-sm">${tp.Elemen || tp.materiPokok || '-'}</div>
+            <div class="text-xs text-gray-600 mt-1">${tp['Tujuan Pembelajaran'] || '-'}</div>
+        </td>`;
+        bodyRows += `<td class="border border-gray-400 px-2 py-2 text-center align-top font-bold">${item.totalJP}</td>`;
+        
+        // Fill cells for each week of each month
+        months.forEach(m => {
+            for (let w = 1; w <= 5; w++) {
+                // Find allocations in this month and week
+                const cellAllocations = allocations.filter(a => {
+                    const aMonth = a.date.getMonth();
+                    const aYear = a.date.getFullYear();
+                    const aWeek = getWeekOfMonth(a.date);
+                    return aMonth === m.month && aYear === m.year && aWeek === w;
+                });
+                
+                if (cellAllocations.length > 0) {
+                    const totalJP = cellAllocations.reduce((sum, a) => sum + a.jp, 0);
+                    const dates = cellAllocations.map(a => a.date.getDate()).join(',');
+                    
+                    bodyRows += `
+                        <td class="border border-gray-400 px-1 py-1 text-center" style="background-color: #e3f2fd;">
+                            <span class="font-bold text-blue-800" style="font-size: 10pt;">${totalJP}</span>
+                            <span class="block text-red-600 font-bold" style="font-size: 7pt;">(${dates})</span>
+                        </td>
+                    `;
+                } else {
+                    bodyRows += `<td class="border border-gray-400 px-1 py-1"></td>`;
+                }
+            }
+        });
+        
+        bodyRows += `</tr>`;
+        no++;
+    });
+    
+    // Add summary row
+    const totalJP = promesData.reduce((sum, item) => sum + item.totalJP, 0);
+    const totalMeetings = teachingDates.length;
+    
+    bodyRows += `
+        <tr style="background-color: #f8f9fa;">
+            <td colspan="3" class="border border-gray-400 px-3 py-2 text-left font-bold">
+                Total: ${totalJP} JP | Pertemuan Efektif: ${totalMeetings} hari
+            </td>
+            <td colspan="${months.length * 5}" class="border border-gray-400 px-3 py-2 text-left text-xs text-gray-600">
+                <em>Tanggal (merah) = tanggal pertemuan reel berdasarkan kalender dan jadwal. Sesuaikan dengan kalender sekolah.</em>
+            </td>
+        </tr>
+    `;
+    
+    container.innerHTML = `
+        <div id="promesPrintArea" class="p-6" style="font-family: 'Times New Roman', serif; font-size: 10pt;">
+            <!-- Document Header -->
+            <div class="text-center mb-4">
+                <h1 class="font-bold" style="font-size: 13pt;">PROGRAM SEMESTER (PROMES)</h1>
+                <h2 class="font-bold" style="font-size: 12pt;">SEMESTER ${semester.toUpperCase()}</h2>
+            </div>
+
+            <!-- Identity Table -->
+            <table class="mb-4" style="font-size: 10pt;">
+                <tr>
+                    <td style="width: 140px; padding: 2px 0;">Satuan Pendidikan</td>
+                    <td style="width: 10px;">:</td>
+                    <td><strong>${currentUserData?.namaSekolah || '-'}</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Mata Pelajaran</td>
+                    <td>:</td>
+                    <td>${subject}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Fase / Kelas</td>
+                    <td>:</td>
+                    <td>Fase ${fase} / Kelas ${kelas} / ${rombel}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Tahun Pelajaran</td>
+                    <td>:</td>
+                    <td>${tahunAjar}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 2px 0;">Hari Efektif KBM</td>
+                    <td>:</td>
+                    <td style="color: #c0392b;"><strong>Setiap Hari ${hari} (${jpPerPertemuan} JP/pertemuan)</strong></td>
+                </tr>
+                ${isKelasAkhir ? `
+                <tr>
+                    <td style="padding: 2px 0;">Catatan</td>
+                    <td>:</td>
+                    <td style="color: #e67e22;"><em>Kelas akhir jenjang - waktu efektif dipercepat</em></td>
+                </tr>
+                ` : ''}
+            </table>
+
+            <!-- Promes Table -->
+            <table class="w-full border-collapse" style="font-size: 9pt;">
+                <thead>
+                    <tr>${headerRow1}</tr>
+                    <tr>${headerRow2}</tr>
+                </thead>
+                <tbody>
+                    ${bodyRows}
+                </tbody>
+            </table>
+
+            <!-- Signature Area -->
+            <div class="flex justify-between mt-8" style="font-size: 10pt;">
+                <div class="text-center" style="width: 45%;">
+                    <p>Mengetahui,</p>
+                    <p>Kepala Sekolah</p>
+                    <div style="height: 60px;"></div>
+                    <p class="font-bold" style="text-decoration: underline;">${currentUserData?.namaKepalaSekolah || '...........................'}</p>
+                    <p>NIP. ${currentUserData?.nipKepalaSekolah || '...........................'}</p>
+                </div>
+                <div class="text-center" style="width: 45%;">
+                    <p>${currentUserData?.kotaKabupaten || '............'}, ${formatDateID(new Date())}</p>
+                    <p>Guru Mata Pelajaran</p>
+                    <div style="height: 60px;"></div>
+                    <p class="font-bold" style="text-decoration: underline;">${currentUserData?.displayName || '...........................'}</p>
+                    <p>NIP. ${currentUserData?.nip || '...........................'}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Store data for export
+    window.promesData = { subject, kelas, rombel, semester, promesData, teachingDates, months };
+}
+
+function printPromes() {
+    printElement('promesPrintArea', 'Program Semester');
+}
+
+function downloadPromesCSV() {
+    if (!window.promesData) {
+        showToast('Generate PROMES terlebih dahulu', 'warning');
+        return;
+    }
+    
+    const { subject, kelas, rombel, semester, promesData, teachingDates, months } = window.promesData;
+    const rows = [];
+    
+    // Header
+    let header = ['No', 'Elemen/Bab', 'Tujuan Pembelajaran', 'Total JP'];
+    months.forEach(m => {
+        for (let w = 1; w <= 5; w++) {
+            header.push(`${m.shortName}-M${w}`);
+        }
+    });
+    rows.push(header);
+    
+    // Data
+    let no = 1;
+    promesData.forEach(item => {
+        const tp = item.tp;
+        let row = [
+            no,
+            tp.Elemen || tp.materiPokok || '',
+            tp['Tujuan Pembelajaran'] || '',
+            item.totalJP
+        ];
+        
+        months.forEach(m => {
+            for (let w = 1; w <= 5; w++) {
+                const cellAllocations = item.allocations.filter(a => {
+                    const aMonth = a.date.getMonth();
+                    const aYear = a.date.getFullYear();
+                    const aWeek = getWeekOfMonth(a.date);
+                    return aMonth === m.month && aYear === m.year && aWeek === w;
+                });
+                
+                if (cellAllocations.length > 0) {
+                    const jp = cellAllocations.reduce((sum, a) => sum + a.jp, 0);
+                    const dates = cellAllocations.map(a => a.date.getDate()).join('/');
+                    row.push(`${jp}JP (tgl ${dates})`);
+                } else {
+                    row.push('');
+                }
+            }
+        });
+        
+        rows.push(row);
+        no++;
+    });
+    
+    const csv = rows.map(row => row.join(';')).join('\n');
+    downloadFile(csv, `PROMES_${subject}_Kelas${kelas}_${semester}.csv`);
+    showToast('PROMES berhasil di-download', 'success');
+}
 function renderModulAjar() {
     renderPremiumPlaceholder('Modul Ajar', 'Modul Ajar terintegrasi dengan Jurnal dan LKPD');
 }
