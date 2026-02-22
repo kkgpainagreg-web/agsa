@@ -23,10 +23,10 @@ function showToast(message, type = 'info', duration = 3000) {
     };
 
     const toast = document.createElement('div');
-    toast.className = `${colors[type]} text-white px-6 py-4 rounded-xl shadow-lg flex items-center space-x-3 transform translate-x-full transition-transform duration-300`;
+    toast.className = `${colors[type]} text-white px-6 py-4 rounded-xl shadow-lg flex items-center space-x-3 transform translate-x-full transition-transform duration-300 max-w-sm`;
     toast.innerHTML = `
-        <i class="fas ${icons[type]}"></i>
-        <span>${message}</span>
+        <i class="fas ${icons[type]} flex-shrink-0"></i>
+        <span class="text-sm">${message}</span>
     `;
 
     container.appendChild(toast);
@@ -38,7 +38,9 @@ function showToast(message, type = 'info', duration = 3000) {
     setTimeout(() => {
         toast.classList.add('translate-x-full');
         setTimeout(() => {
-            toast.remove();
+            if (toast.parentNode) {
+                toast.remove();
+            }
         }, 300);
     }, duration);
 }
@@ -49,8 +51,10 @@ function showLoading(show = true) {
     if (overlay) {
         if (show) {
             overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
         } else {
             overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
         }
     }
 }
@@ -119,10 +123,16 @@ function generateId() {
 
 // Parse CSV
 function parseCSV(text, delimiter = ',') {
-    const lines = text.split('\n');
+    if (!text || typeof text !== 'string') {
+        return { headers: [], data: [] };
+    }
+    
+    const lines = text.split('\n').filter(line => line.trim());
     if (lines.length === 0) return { headers: [], data: [] };
     
-    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, '_'));
+    const headers = lines[0].split(delimiter).map(h => 
+        h.trim().toLowerCase().replace(/"/g, '').replace(/\s+/g, '_')
+    );
     const data = [];
 
     for (let i = 1; i < lines.length; i++) {
@@ -149,13 +159,19 @@ function calculateEffectiveDays(startDate, endDate, holidays = [], excludeSunday
         const current = new Date(startDate);
         const end = new Date(endDate);
         
-        const holidaySet = new Set(holidays.map(d => {
-            try {
-                return formatDateForInput(d);
-            } catch (e) {
-                return '';
-            }
-        }));
+        if (isNaN(current.getTime()) || isNaN(end.getTime())) {
+            return 0;
+        }
+        
+        const holidaySet = new Set(
+            (holidays || []).map(d => {
+                try {
+                    return formatDateForInput(d);
+                } catch (e) {
+                    return '';
+                }
+            }).filter(d => d)
+        );
 
         while (current <= end) {
             const dayOfWeek = current.getDay();
@@ -183,6 +199,11 @@ function getWeeksBetween(startDate, endDate) {
     try {
         const start = new Date(startDate);
         const end = new Date(endDate);
+        
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return 0;
+        }
+        
         const diffTime = Math.abs(end - start);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return Math.ceil(diffDays / 7);
@@ -219,15 +240,54 @@ function isGmail(email) {
 
 // Download file
 function downloadFile(content, filename, mimeType = 'text/plain') {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    try {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error('Error downloading file:', e);
+        showToast('Gagal mengunduh file', 'error');
+    }
+}
+
+// Debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Truncate text
+function truncateText(text, maxLength = 100) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+}
+
+// Capitalize first letter
+function capitalize(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 console.log('Utils.js loaded successfully');
