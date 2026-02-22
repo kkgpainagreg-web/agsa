@@ -216,9 +216,9 @@ async function loadRekapJurnal() {
     }
 }
 
-// --- FITUR 5: Cetak Jurnal Format Resmi ---
+// --- FITUR 5: Cetak Jurnal Format Resmi (Landscape) ---
 btnPrintJurnal.addEventListener('click', async () => {
-    // Tarik semua data jurnal untuk di render ulang ke template Print
+    // Tarik semua data jurnal dari database
     const q = query(
         collection(db, "journals"),
         where("teacherId", "==", auth.currentUser.uid),
@@ -232,45 +232,79 @@ btnPrintJurnal.addEventListener('click', async () => {
         const d = doc.data();
         tableRows += `
             <tr>
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">${no++}</td>
-                <td style="border: 1px solid black; padding: 6px; text-align: center;">${d.rombel}</td>
-                <td style="border: 1px solid black; padding: 6px;">${d.materi}</td>
-                <td style="border: 1px solid black; padding: 6px;">${d.tp}</td>
-                <td style="border: 1px solid black; padding: 6px;">${d.kehadiran}</td>
-                <td style="border: 1px solid black; padding: 6px; white-space: nowrap;">${d.hariTanggal}</td>
-                <td style="border: 1px solid black; padding: 6px;">${d.hasil}</td>
+                <td style="text-align: center;">${no++}</td>
+                <td style="white-space: nowrap; text-align: center;">${d.hariTanggal}</td>
+                <td style="text-align: center; font-weight: bold;">${d.rombel}</td>
+                <td>${d.materi}</td>
+                <td style="text-align: justify;">${d.tp}</td>
+                <td style="text-align: center;">${d.kehadiran}</td>
+                <td style="text-align: justify;">${d.hasil}</td>
             </tr>
         `;
     });
 
-    const namaGuru = auth.currentUser.displayName || "Nama Guru";
-    // Untuk V1, kita pakai placeholder jika Kepala Sekolah belum disetting
-    const namaKepsek = document.getElementById('input-kepsek')?.value || "_________________________";
-    const namaKota = document.getElementById('input-kota')?.value || "Tasikmalaya";
+    // Ambil Identitas dari UI Profil
+    const namaSekolah = document.getElementById('input-sekolah')?.value || "Nama Sekolah";
+    const kepsek = document.getElementById('input-kepsek')?.value || "_________________________";
+    const nipKepsek = document.getElementById('input-nip-kepsek')?.value || "_________________________";
+    const guru = document.getElementById('input-guru')?.value || auth.currentUser.displayName || "_________________________";
+    const nipGuru = document.getElementById('input-nip-guru')?.value || "_________________________";
+    const kota = document.getElementById('input-kota')?.value || "Tasikmalaya";
     
-    // Tentukan Tahun Pelajaran (Bisa ditarik dari fungsi getAutoSchoolYear di app.js)
-    const year = new Date().getFullYear();
+    // Penentuan Tahun Ajaran Otomatis
+    const now = new Date();
+    const year = now.getFullYear();
+    const isGanjil = now.getMonth() >= 6; // Juli - Des
+    const tahunAjar = isGanjil ? `${year}/${year+1}` : `${year-1}/${year}`;
+    const semesterTeks = isGanjil ? "Ganjil" : "Genap";
+
+    // Format CSS Print (Landscape & Styling identik dengan Promes)
+    const cssPrint = `
+    <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        .print-container { font-family: 'Times New Roman', Times, serif; font-size: 11pt; color: black; background: white; padding: 20px; }
+        .header-title { text-align: center; font-weight: bold; font-size: 14pt; margin-bottom: 20px; text-transform: uppercase; border-bottom: 2px solid black; padding-bottom: 10px; }
+        .identity-table { width: 100%; margin-bottom: 15px; font-weight: bold; font-size: 11pt; }
+        .identity-table td { padding: 3px 5px; }
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10.5pt; }
+        .data-table th, .data-table td { border: 1px solid black; padding: 8px; vertical-align: top; }
+        .data-table th { background-color: #ecf0f1; text-align: center; font-weight: bold; vertical-align: middle; }
+        .signature-area { width: 100%; margin-top: 40px; display: table; page-break-inside: avoid; }
+        .signature-box { display: table-cell; width: 50%; text-align: center; font-size: 11pt; }
+        .signature-box.right { text-align: right; padding-right: 50px; }
+        .signature-name { text-decoration: underline; font-weight: bold; margin-top: 70px; }
+    </style>
+    `;
 
     const printHTML = `
-        <div style="font-family: 'Times New Roman', Times, serif; color: black; line-height: 1.5; padding: 20px;">
-            <h2 style="text-align: center; margin-bottom: 20px; text-transform: uppercase;">JURNAL PEMBELAJARAN</h2>
+        ${cssPrint}
+        <div class="print-container">
+            <div class="header-title">
+                Buku Agenda / Jurnal Pembelajaran Harian<br>
+                Pendidikan Agama Islam dan Budi Pekerti
+            </div>
             
-            <table style="width: 100%; border: none; margin-bottom: 15px; font-weight: bold;">
-                <tr><td style="width: 200px;">Mata Pelajaran</td><td>: Pendidikan Agama Islam dan Budi Pekerti</td></tr>
-                <tr><td>Semester</td><td>: Ganjil / Genap</td></tr>
-                <tr><td>Tahun Pelajaran</td><td>: ${year}/${year+1}</td></tr>
+            <table class="identity-table">
+                <tr>
+                    <td width="150">Satuan Pendidikan</td><td width="10">:</td><td width="300">${namaSekolah}</td>
+                    <td width="150">Semester</td><td width="10">:</td><td>${semesterTeks}</td>
+                </tr>
+                <tr>
+                    <td>Mata Pelajaran</td><td>:</td><td>Pendidikan Agama Islam & BP</td>
+                    <td>Tahun Pelajaran</td><td>:</td><td>${tahunAjar}</td>
+                </tr>
             </table>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <table class="data-table">
                 <thead>
-                    <tr style="background-color: #f0f0f0;">
-                        <th style="border: 1px solid black; padding: 8px;">No</th>
-                        <th style="border: 1px solid black; padding: 8px;">Kelas</th>
-                        <th style="border: 1px solid black; padding: 8px;">Materi</th>
-                        <th style="border: 1px solid black; padding: 8px;">Tujuan Pembelajaran</th>
-                        <th style="border: 1px solid black; padding: 8px;">Kehadiran</th>
-                        <th style="border: 1px solid black; padding: 8px;">Hari/Tanggal</th>
-                        <th style="border: 1px solid black; padding: 8px;">Hasil Pembelajaran</th>
+                    <tr>
+                        <th width="3%">No</th>
+                        <th width="12%">Hari, Tanggal</th>
+                        <th width="8%">Kelas</th>
+                        <th width="15%">Materi / Elemen</th>
+                        <th width="30%">Tujuan Pembelajaran</th>
+                        <th width="10%">Absensi</th>
+                        <th width="22%">Hasil / Keterangan</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -278,26 +312,27 @@ btnPrintJurnal.addEventListener('click', async () => {
                 </tbody>
             </table>
 
-            <div style="margin-top: 50px; display: flex; justify-content: space-between; text-align: center;">
-                <div>
-                    <p>Mengetahui,</p>
-                    <p>Kepala Sekolah</p>
-                    <br><br><br><br>
-                    <p style="font-weight: bold; text-decoration: underline;">${namaKepsek}</p>
+            <div class="signature-area">
+                <div class="signature-box">
+                    Mengetahui,<br>Kepala Sekolah
+                    <div class="signature-name">${kepsek}</div>
+                    NIP. ${nipKepsek}
                 </div>
-                <div>
-                    <p>${namaKota}, ${new Date().toLocaleDateString('id-ID')}</p>
-                    <p>Guru Mata Pelajaran</p>
-                    <br><br><br><br>
-                    <p style="font-weight: bold; text-decoration: underline;">${namaGuru}</p>
+                <div class="signature-box right" style="text-align: center; display: inline-block; float: right; width: 40%;">
+                    ${kota}, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br>Guru Mata Pelajaran
+                    <div class="signature-name">${guru}</div>
+                    NIP. ${nipGuru}
                 </div>
             </div>
         </div>
     `;
 
+    // Proses Print
     const originalContents = document.body.innerHTML;
     document.body.innerHTML = printHTML;
     window.print();
+    
+    // Restore UI
     document.body.innerHTML = originalContents;
     window.location.reload();
 });
