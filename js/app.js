@@ -1,6 +1,8 @@
 // js/app.js
 import './jadwal.js';
 import './csv-parser.js';
+import './atp-generator.js';
+import './promes-generator.js';
 import { auth, provider, signInWithPopup, signOut, onAuthStateChanged, db, doc, getDoc, setDoc } from './firebase-config.js';
 
 // --- UTILITY: Auto School Year ---
