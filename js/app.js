@@ -2,7 +2,9 @@
 
 // Global state
 let currentModule = 'dashboard';
-let currentAcademicYear = '';
+let currentAcademicYear = ''; // This will be the ID format (e.g., "2024_2025")
+let currentAcademicYearDisplay = ''; // This will be display format (e.g., "2024/2025")
+
 let userData = {
     profile: null,
     calendar: null,
@@ -14,7 +16,7 @@ let userData = {
     promes: []
 };
 
-// Default CP Data (embedded for reliability)
+// Default CP Data (embedded)
 const CP_DEFAULT_DATA = [
     // Fase A - Kelas 1 - Ganjil
     { fase: "Fase A", kelas: 1, semester: "Ganjil", elemen: "Al-Qur'an Hadis", tujuanPembelajaran: "Peserta didik mampu mengenal dan melafalkan huruf hijaiyah dan harakat dasar dengan benar.", dimensi: ["Keimanan"] },
@@ -113,7 +115,6 @@ const CP_DEFAULT_DATA = [
     { fase: "Fase D", kelas: 7, semester: "Genap", elemen: "Fikih", tujuanPembelajaran: "Peserta didik mampu memahami ketentuan pelaksanaan salat Jumat dan salat sunnah muakkad.", dimensi: ["Keimanan", "Kolaborasi"] },
     { fase: "Fase D", kelas: 7, semester: "Genap", elemen: "Sejarah Peradaban Islam", tujuanPembelajaran: "Peserta didik mampu menganalisis keberhasilan misi dakwah Nabi Muhammad saw periode Madinah.", dimensi: ["Penalaran Kritis", "Kolaborasi"] },
 
-    // Additional Fase D entries for classes 8 and 9...
     { fase: "Fase D", kelas: 8, semester: "Ganjil", elemen: "Al-Qur'an Hadis", tujuanPembelajaran: "Peserta didik mampu memahami pesan Al-Qur'an tentang mengonsumsi makanan yang halal dan thayyib.", dimensi: ["Kesehatan", "Keimanan"] },
     { fase: "Fase D", kelas: 8, semester: "Ganjil", elemen: "Akidah", tujuanPembelajaran: "Peserta didik mampu memahami dan meneladani sifat wajib, mustahil, dan jaiz bagi Rasul Allah.", dimensi: ["Keimanan"] },
     { fase: "Fase D", kelas: 8, semester: "Ganjil", elemen: "Akhlak", tujuanPembelajaran: "Peserta didik mampu menerapkan adab bermedia sosial sesuai pandangan Islam.", dimensi: ["Komunikasi", "Kewargaan"] },
@@ -139,7 +140,7 @@ const CP_DEFAULT_DATA = [
     { fase: "Fase D", kelas: 9, semester: "Genap", elemen: "Sejarah Peradaban Islam", tujuanPembelajaran: "Peserta didik mampu mengapresiasi kearifan lokal tradisi Islam Nusantara.", dimensi: ["Kreativitas", "Kewargaan"] },
 
     // Fase E - Kelas 10 (SMA)
-    { fase: "Fase E", kelas: 10, semester: "Ganjil", elemen: "Al-Qur'an Hadis", tujuanPembelajaran: "Peserta didik mampu menganalisis ayat Al-Qur'an tentang kontrol diri (mujahadah an-nafs), prasangka baik, dan persaudaraan.", dimensi: ["Keimanan", "Penalaran Kritis", "Kewargaan"] },
+    { fase: "Fase E", kelas: 10, semester: "Ganjil", elemen: "Al-Qur'an Hadis", tujuanPembelajaran: "Peserta didik mampu menganalisis ayat Al-Qur'an tentang kontrol diri, prasangka baik, dan persaudaraan.", dimensi: ["Keimanan", "Penalaran Kritis", "Kewargaan"] },
     { fase: "Fase E", kelas: 10, semester: "Ganjil", elemen: "Akidah", tujuanPembelajaran: "Peserta didik mampu menganalisis makna Syu'abul Iman (cabang-cabang iman) dan implementasinya.", dimensi: ["Keimanan", "Penalaran Kritis"] },
     { fase: "Fase E", kelas: 10, semester: "Ganjil", elemen: "Akhlak", tujuanPembelajaran: "Peserta didik mampu menganalisis manfaat menghindari akhlak mazmumah dan membiasakan berpakaian Islami.", dimensi: ["Kesehatan", "Kemandirian"] },
     { fase: "Fase E", kelas: 10, semester: "Ganjil", elemen: "Fikih", tujuanPembelajaran: "Peserta didik mampu menganalisis implementasi fikih muamalah al-maliyah di era modern.", dimensi: ["Penalaran Kritis", "Keimanan"] },
@@ -199,7 +200,6 @@ function getFaseByKelas(kelas) {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
-    // Check authentication
     auth.onAuthStateChanged(async (user) => {
         if (!user) {
             window.location.href = 'index.html';
@@ -252,7 +252,6 @@ async function loadUserProfile() {
             userProfile = doc.data();
             userData.profile = userProfile;
         } else {
-            // Create new profile if doesn't exist
             await createUserProfile(currentUser);
             userProfile = {
                 uid: currentUser.uid,
@@ -265,7 +264,6 @@ async function loadUserProfile() {
         }
     } catch (error) {
         console.error('Error loading profile:', error);
-        // Use fallback profile from auth
         userProfile = {
             uid: currentUser.uid,
             email: currentUser.email,
@@ -302,7 +300,7 @@ async function createUserProfile(user) {
             isActive: false
         },
         settings: {
-            defaultAcademicYear: academicYears[1],
+            defaultAcademicYear: academicYears[1].id, // Use ID format
             theme: 'light',
             notifications: true
         },
@@ -323,11 +321,9 @@ async function createUserProfile(user) {
 
 // Setup UI elements
 function setupUI() {
-    // Get display name safely
     const displayName = userProfile?.displayName || currentUser?.displayName || 'User';
     const photoURL = userProfile?.photoURL || currentUser?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=22c55e&color=fff`;
     
-    // Set user info in UI
     const userNameEl = document.getElementById('userName');
     const userAvatarEl = document.getElementById('userAvatar');
     const welcomeNameEl = document.getElementById('welcomeName');
@@ -336,7 +332,6 @@ function setupUI() {
     if (userAvatarEl) userAvatarEl.src = photoURL;
     if (welcomeNameEl) welcomeNameEl.textContent = displayName.split(' ')[0];
 
-    // Set subscription badge
     const badge = document.getElementById('subscriptionBadge');
     const upgradeBtn = document.getElementById('upgradeBtn');
     
@@ -346,8 +341,6 @@ function setupUI() {
             badge.className = 'ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full';
         }
         if (upgradeBtn) upgradeBtn.classList.add('hidden');
-        
-        // Hide premium badges in sidebar
         document.querySelectorAll('.premium-badge').forEach(el => el.classList.add('hidden'));
     } else {
         if (badge) {
@@ -357,50 +350,49 @@ function setupUI() {
         if (upgradeBtn) upgradeBtn.classList.remove('hidden');
     }
 
-    // Show admin link if super admin
     const adminLink = document.getElementById('adminLink');
     if (adminLink && isSuperAdmin()) {
         adminLink.classList.remove('hidden');
         adminLink.classList.add('flex');
     }
 
-    // Load profile data into form
     loadProfileForm();
-
-    // Setup form handlers
     setupFormHandlers();
-
-    // Initialize premium module placeholders
     initPremiumModules();
 }
 
-// Setup academic year selector
+// Setup academic year selector - FIXED
 function setupAcademicYear() {
     const years = getAvailableAcademicYears();
     const select = document.getElementById('academicYearSelect');
     
     if (!select) return;
     
-    const defaultYear = userProfile?.settings?.defaultAcademicYear || years[1];
+    // Get saved preference or use current year
+    const savedYearId = userProfile?.settings?.defaultAcademicYear;
+    const defaultYear = years.find(y => y.id === savedYearId) || years[1];
     
+    // Populate dropdown with display values but store IDs
     select.innerHTML = years.map(year => 
-        `<option value="${year}" ${year === defaultYear ? 'selected' : ''}>${year}</option>`
+        `<option value="${year.id}" ${year.id === defaultYear.id ? 'selected' : ''}>${year.display}</option>`
     ).join('');
 
-    currentAcademicYear = select.value;
+    currentAcademicYear = select.value; // ID format (e.g., "2024_2025")
+    currentAcademicYearDisplay = academicYearToDisplay(currentAcademicYear); // Display format
     
     const currentYearDisplay = document.getElementById('currentYearDisplay');
     if (currentYearDisplay) {
-        currentYearDisplay.textContent = currentAcademicYear;
+        currentYearDisplay.textContent = currentAcademicYearDisplay;
     }
 
     select.addEventListener('change', async (e) => {
         currentAcademicYear = e.target.value;
+        currentAcademicYearDisplay = academicYearToDisplay(currentAcademicYear);
+        
         if (currentYearDisplay) {
-            currentYearDisplay.textContent = currentAcademicYear;
+            currentYearDisplay.textContent = currentAcademicYearDisplay;
         }
         
-        // Update user settings
         try {
             await updateUserProfile({
                 'settings.defaultAcademicYear': currentAcademicYear
@@ -409,47 +401,43 @@ function setupAcademicYear() {
             console.warn('Could not save academic year preference');
         }
 
-        // Reload data for new academic year
         await loadUserData();
         updateDashboardStats();
     });
 }
 
-// Load user data
+// Load user data - FIXED with proper document IDs
 async function loadUserData() {
-    if (!currentUser) return;
+    if (!currentUser || !currentAcademicYear) return;
 
     try {
-        // Load calendar
+        // Load calendar - using ID format for document path
         const calendarDoc = await db.collection('users').doc(currentUser.uid)
             .collection('calendar').doc(currentAcademicYear).get();
-        if (calendarDoc.exists) {
-            userData.calendar = calendarDoc.data();
-        } else {
-            userData.calendar = null;
-        }
+        userData.calendar = calendarDoc.exists ? calendarDoc.data() : null;
 
         // Load schedule
         const scheduleDoc = await db.collection('users').doc(currentUser.uid)
             .collection('schedule').doc(currentAcademicYear).get();
-        if (scheduleDoc.exists) {
-            userData.schedule = scheduleDoc.data();
-        } else {
-            userData.schedule = null;
-        }
+        userData.schedule = scheduleDoc.exists ? scheduleDoc.data() : null;
 
-        // Load CP
+        // Load CP (not year-specific)
         const cpSnapshot = await db.collection('users').doc(currentUser.uid)
             .collection('cp').get();
         userData.cp = cpSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Load students
+        // Load students for current academic year
         const studentsSnapshot = await db.collection('users').doc(currentUser.uid)
             .collection('students').where('academicYear', '==', currentAcademicYear).get();
         userData.students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     } catch (error) {
         console.error('Error loading user data:', error);
+        // Initialize with empty data
+        userData.calendar = null;
+        userData.schedule = null;
+        userData.cp = [];
+        userData.students = [];
     }
 }
 
@@ -469,19 +457,17 @@ function updateDashboardStats() {
     
     if (totalTPEl) totalTPEl.textContent = userData.cp?.length || 0;
     
-    // Calculate effective days
     if (effectiveDaysEl && userData.calendar) {
-        const holidays = userData.calendar.holidays || [];
+        const holidays = (userData.calendar.holidays || []).map(h => h.date);
         const sem1Days = userData.calendar.sem1Start && userData.calendar.sem1End ?
-            calculateEffectiveDays(userData.calendar.sem1Start, userData.calendar.sem1End, holidays.map(h => h.date)) : 0;
+            calculateEffectiveDays(userData.calendar.sem1Start, userData.calendar.sem1End, holidays) : 0;
         const sem2Days = userData.calendar.sem2Start && userData.calendar.sem2End ?
-            calculateEffectiveDays(userData.calendar.sem2Start, userData.calendar.sem2End, holidays.map(h => h.date)) : 0;
+            calculateEffectiveDays(userData.calendar.sem2Start, userData.calendar.sem2End, holidays) : 0;
         effectiveDaysEl.textContent = sem1Days + sem2Days;
     } else if (effectiveDaysEl) {
         effectiveDaysEl.textContent = 0;
     }
 
-    // Update setup progress
     updateSetupProgress();
 }
 
@@ -511,7 +497,6 @@ function updateSetupProgress() {
 
 // Show module
 function showModule(moduleName) {
-    // Update sidebar
     document.querySelectorAll('.sidebar-link').forEach(link => {
         link.classList.remove('active');
         if (link.getAttribute('href') === `#${moduleName}`) {
@@ -519,18 +504,15 @@ function showModule(moduleName) {
         }
     });
 
-    // Hide all modules
     document.querySelectorAll('.module-content').forEach(module => {
         module.classList.add('hidden');
     });
 
-    // Show selected module
     const moduleElement = document.getElementById(`module-${moduleName}`);
     if (moduleElement) {
         moduleElement.classList.remove('hidden');
     }
 
-    // Update page title
     const titles = {
         'dashboard': 'Dashboard',
         'profil': 'Profil',
@@ -556,17 +538,14 @@ function showModule(moduleName) {
         pageTitleEl.textContent = titles[moduleName] || moduleName;
     }
 
-    // Update URL hash
     window.location.hash = moduleName;
     currentModule = moduleName;
 
-    // Close sidebar on mobile
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     if (sidebar) sidebar.classList.add('-translate-x-full');
     if (overlay) overlay.classList.add('hidden');
 
-    // Load module-specific data
     loadModuleData(moduleName);
 }
 
@@ -637,19 +616,16 @@ function hideModal(modalId) {
 
 // Setup form handlers
 function setupFormHandlers() {
-    // Profile form
     const profileForm = document.getElementById('profileForm');
     if (profileForm) {
         profileForm.addEventListener('submit', saveProfile);
     }
     
-    // Add CP form
     const addCPForm = document.getElementById('addCPForm');
     if (addCPForm) {
         addCPForm.addEventListener('submit', saveCP);
     }
     
-    // Fase change handler for CP form
     const cpFaseSelect = document.getElementById('cpFase');
     if (cpFaseSelect) {
         cpFaseSelect.addEventListener('change', (e) => {
@@ -685,7 +661,6 @@ function loadProfileForm() {
     setInputValue('inputPrincipalName', userProfile.principalName);
     setInputValue('inputPrincipalNIP', userProfile.principalNIP);
 
-    // Profile header
     const profileDisplayName = document.getElementById('profileDisplayName');
     const profileEmail = document.getElementById('profileEmail');
     const profileAvatar = document.getElementById('profileAvatar');
@@ -697,7 +672,6 @@ function loadProfileForm() {
             `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.displayName || 'U')}&background=ffffff&color=22c55e&size=100`;
     }
 
-    // Load subjects
     loadSubjectsForm();
 }
 
@@ -708,6 +682,7 @@ function loadSubjectsForm() {
     const subjects = userProfile?.subjects || [];
 
     if (subjects.length === 0) {
+        container.innerHTML = '';
         addSubjectInput();
         return;
     }
@@ -747,7 +722,6 @@ async function saveProfile(e) {
     showLoading(true);
 
     try {
-        // Collect subjects
         const subjectNames = document.querySelectorAll('input[name="subjectName[]"]');
         const subjectHours = document.querySelectorAll('input[name="subjectHours[]"]');
         const subjects = [];
@@ -781,7 +755,6 @@ async function saveProfile(e) {
 
         await updateUserProfile(profileData);
         
-        // Update UI
         const userNameEl = document.getElementById('userName');
         const welcomeNameEl = document.getElementById('welcomeName');
         const profileDisplayNameEl = document.getElementById('profileDisplayName');
@@ -819,19 +792,19 @@ function loadCalendarModule() {
         
         loadHolidays(userData.calendar.holidays || []);
     } else {
-        // Set default dates
-        const years = currentAcademicYear.split('/');
-        sem1Start.value = `${years[0]}-07-15`;
-        sem1End.value = `${years[0]}-12-20`;
-        sem2Start.value = `${years[1]}-01-06`;
-        sem2End.value = `${years[1]}-06-20`;
-        
+        // Set default dates based on academic year
+        const yearParts = currentAcademicYear.split('_');
+        if (yearParts.length === 2) {
+            sem1Start.value = `${yearParts[0]}-07-15`;
+            sem1End.value = `${yearParts[0]}-12-20`;
+            sem2Start.value = `${yearParts[1]}-01-06`;
+            sem2End.value = `${yearParts[1]}-06-20`;
+        }
         loadHolidays([]);
     }
     
     updateCalendarStats();
 
-    // Add change listeners
     ['sem1Start', 'sem1End', 'sem2Start', 'sem2End'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', updateCalendarStats);
@@ -858,7 +831,6 @@ function addHolidayRow(holiday = null) {
     const container = document.getElementById('holidaysList');
     if (!container) return;
     
-    // Remove placeholder if exists
     const placeholder = container.querySelector('p');
     if (placeholder) placeholder.remove();
 
@@ -966,14 +938,12 @@ async function loadDefaultCP() {
     showLoading(true);
 
     try {
-        // Clear existing CP
         const batch = db.batch();
         const existingCP = await db.collection('users').doc(currentUser.uid)
             .collection('cp').get();
         existingCP.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
 
-        // Add default CP
         const newBatch = db.batch();
         CP_DEFAULT_DATA.forEach(cp => {
             const ref = db.collection('users').doc(currentUser.uid).collection('cp').doc();
@@ -984,7 +954,6 @@ async function loadDefaultCP() {
         });
         await newBatch.commit();
 
-        // Reload CP
         const cpSnapshot = await db.collection('users').doc(currentUser.uid)
             .collection('cp').get();
         userData.cp = cpSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1058,7 +1027,6 @@ function renderCPList(cpData) {
         return;
     }
 
-    // Group by fase
     const grouped = {};
     cpData.forEach(cp => {
         if (!grouped[cp.fase]) grouped[cp.fase] = [];
@@ -1139,7 +1107,7 @@ async function deleteCP(cpId) {
     showLoading(false);
 }
 
-// ==================== STUDENTS MODULE ====================
+// ==================== SISWA MODULE ====================
 
 function loadStudentsModule() {
     populateClassFilters();
@@ -1180,7 +1148,6 @@ async function processImportStudents() {
             return;
         }
 
-        // Validate required fields
         const requiredFields = ['nisn', 'nama', 'jenis_kelamin', 'kelas', 'rombel'];
         const firstRow = data[0];
         const missingFields = requiredFields.filter(f => !(f in firstRow));
@@ -1191,7 +1158,6 @@ async function processImportStudents() {
             return;
         }
 
-        // Save students to Firestore
         const batch = db.batch();
         
         data.forEach(row => {
@@ -1210,7 +1176,6 @@ async function processImportStudents() {
 
         await batch.commit();
 
-        // Reload students
         const studentsSnapshot = await db.collection('users').doc(currentUser.uid)
             .collection('students').where('academicYear', '==', currentAcademicYear).get();
         userData.students = studentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1326,7 +1291,7 @@ async function deleteStudent(studentId) {
     }
 }
 
-// ==================== SCHEDULE MODULE ====================
+// ==================== JADWAL MODULE ====================
 
 function loadScheduleModule() {
     const classSelect = document.getElementById('scheduleClass');
@@ -1542,7 +1507,6 @@ function renderATP(cpData, kelas, mapel) {
     const container = document.getElementById('atpContent');
     if (!container) return;
     
-    // Group by semester
     const bySemester = {};
     cpData.forEach(cp => {
         if (!bySemester[cp.semester]) bySemester[cp.semester] = [];
@@ -1553,7 +1517,7 @@ function renderATP(cpData, kelas, mapel) {
         <div class="print-full">
             <div class="text-center mb-6">
                 <h2 class="text-xl font-bold">ALUR TUJUAN PEMBELAJARAN (ATP)</h2>
-                <p class="text-gray-600">Tahun Pelajaran ${currentAcademicYear}</p>
+                <p class="text-gray-600">Tahun Pelajaran ${currentAcademicYearDisplay}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
@@ -1693,7 +1657,7 @@ function renderProta(cpData, kelas, mapel) {
         <div class="print-full">
             <div class="text-center mb-6">
                 <h2 class="text-xl font-bold">PROGRAM TAHUNAN (PROTA)</h2>
-                <p class="text-gray-600">Tahun Pelajaran ${currentAcademicYear}</p>
+                <p class="text-gray-600">Tahun Pelajaran ${currentAcademicYearDisplay}</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
@@ -1837,24 +1801,11 @@ Data siswa yang perlu dikonversi:
         cp: `Tolong konversikan Capaian Pembelajaran berikut ke format CSV dengan kolom:
 fase,kelas,semester,elemen,tujuan_pembelajaran,dimensi
 
-Ketentuan:
-- fase: Fase A/B/C/D/E/F
-- kelas: Angka 1-12
-- semester: Ganjil atau Genap
-- elemen: Nama bab/elemen pembelajaran
-- tujuan_pembelajaran: Deskripsi TP lengkap
-- dimensi: Dimensi Profil Lulusan (pisahkan dengan |)
-
 Data CP yang perlu dikonversi:
 [PASTE DATA CP ANDA DI SINI]`,
 
         calendar: `Tolong konversikan data kalender pendidikan berikut ke format CSV dengan kolom:
 tanggal,nama_kegiatan,jenis
-
-Ketentuan:
-- tanggal: Format YYYY-MM-DD
-- nama_kegiatan: Nama hari libur/kegiatan
-- jenis: libur/kegiatan/ujian
 
 Data kalender yang perlu dikonversi:
 [PASTE DATA KALENDER ANDA DI SINI]`,
@@ -1885,7 +1836,7 @@ function initPremiumModules() {
             if (isPremium()) {
                 moduleEl.innerHTML = `
                     <div class="bg-white rounded-2xl border border-gray-100 p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">${moduleName.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h2>
+                        <h2 class="text-xl font-bold text-gray-800 mb-4">${moduleName.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</h2>
                         <p class="text-gray-500">Fitur ini sedang dalam pengembangan dan akan segera tersedia.</p>
                     </div>
                 `;
