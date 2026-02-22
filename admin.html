@@ -34,12 +34,20 @@
         </div>
     </div>
 
+    <!-- Loading State -->
+    <div id="loadingState" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-600">Memuat...</p>
+        </div>
+    </div>
+
     <!-- Admin Content -->
     <div id="adminContent" class="hidden">
         <!-- Header -->
         <header class="bg-gradient-to-r from-purple-700 to-purple-500 text-white">
             <div class="max-w-7xl mx-auto px-4 py-6">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div class="flex items-center space-x-4">
                         <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                             <i class="fas fa-shield-alt text-2xl"></i>
@@ -63,70 +71,72 @@
 
         <!-- Stats -->
         <div class="max-w-7xl mx-auto px-4 py-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white rounded-2xl p-6 border border-gray-100">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <div class="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-users text-blue-600 text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-users text-blue-600 text-lg md:text-xl"></i>
                         </div>
                     </div>
-                    <p id="statTotalUsers" class="text-3xl font-bold text-gray-800">0</p>
+                    <p id="statTotalUsers" class="text-2xl md:text-3xl font-bold text-gray-800">0</p>
                     <p class="text-gray-500 text-sm">Total Pengguna</p>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 border border-gray-100">
+                <div class="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-crown text-amber-600 text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-crown text-amber-600 text-lg md:text-xl"></i>
                         </div>
                     </div>
-                    <p id="statPremiumUsers" class="text-3xl font-bold text-gray-800">0</p>
+                    <p id="statPremiumUsers" class="text-2xl md:text-3xl font-bold text-gray-800">0</p>
                     <p class="text-gray-500 text-sm">Pengguna Premium</p>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 border border-gray-100">
+                <div class="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-user-clock text-green-600 text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-user-clock text-green-600 text-lg md:text-xl"></i>
                         </div>
                     </div>
-                    <p id="statActiveToday" class="text-3xl font-bold text-gray-800">0</p>
+                    <p id="statActiveToday" class="text-2xl md:text-3xl font-bold text-gray-800">0</p>
                     <p class="text-gray-500 text-sm">Aktif Hari Ini</p>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 border border-gray-100">
+                <div class="bg-white rounded-2xl p-4 md:p-6 border border-gray-100 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-school text-purple-600 text-xl"></i>
+                        <div class="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-school text-purple-600 text-lg md:text-xl"></i>
                         </div>
                     </div>
-                    <p id="statSchoolPackages" class="text-3xl font-bold text-gray-800">0</p>
+                    <p id="statSchoolPackages" class="text-2xl md:text-3xl font-bold text-gray-800">0</p>
                     <p class="text-gray-500 text-sm">Paket Sekolah</p>
                 </div>
             </div>
 
             <!-- Tabs -->
-            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div class="border-b border-gray-100">
-                    <nav class="flex">
-                        <button onclick="showAdminTab('users')" class="admin-tab active px-6 py-4 text-sm font-medium border-b-2 border-primary-600 text-primary-600">
+            <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div class="border-b border-gray-100 overflow-x-auto">
+                    <nav class="flex min-w-max">
+                        <button onclick="showAdminTab('users')" class="admin-tab active px-4 md:px-6 py-4 text-sm font-medium border-b-2 border-primary-600 text-primary-600 whitespace-nowrap">
                             <i class="fas fa-users mr-2"></i>Manajemen User
                         </button>
-                        <button onclick="showAdminTab('settings')" class="admin-tab px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <button onclick="showAdminTab('settings')" class="admin-tab px-4 md:px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
                             <i class="fas fa-cog mr-2"></i>Pengaturan App
                         </button>
-                        <button onclick="showAdminTab('cp')" class="admin-tab px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                        <button onclick="showAdminTab('cp')" class="admin-tab px-4 md:px-6 py-4 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap">
                             <i class="fas fa-database mr-2"></i>Kelola CP Default
                         </button>
                     </nav>
                 </div>
 
                 <!-- Users Tab -->
-                <div id="tab-users" class="admin-tab-content p-6">
-                    <div class="flex items-center justify-between mb-6">
+                <div id="tab-users" class="admin-tab-content p-4 md:p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                         <h2 class="text-lg font-semibold text-gray-800">Daftar Pengguna</h2>
                         <div class="flex space-x-2">
-                            <input type="text" id="searchUser" placeholder="Cari email..." class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500">
+                            <input type="text" id="searchUser" placeholder="Cari email..." 
+                                class="flex-1 md:w-64 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500"
+                                onkeyup="if(event.key==='Enter')searchUsers()">
                             <button onclick="searchUsers()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -134,7 +144,7 @@
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full">
+                        <table class="w-full min-w-[600px]">
                             <thead>
                                 <tr class="bg-gray-50">
                                     <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Email</th>
@@ -146,20 +156,23 @@
                                 </tr>
                             </thead>
                             <tbody id="usersTableBody">
-                                <!-- Users will be loaded here -->
+                                <tr>
+                                    <td colspan="6" class="text-center py-8 text-gray-500">Memuat data...</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <!-- Settings Tab -->
-                <div id="tab-settings" class="admin-tab-content hidden p-6">
+                <div id="tab-settings" class="admin-tab-content hidden p-4 md:p-6">
                     <h2 class="text-lg font-semibold text-gray-800 mb-6">Pengaturan Aplikasi</h2>
                     
                     <form id="settingsForm" class="max-w-xl space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Nomor WhatsApp (untuk upgrade)</label>
                             <input type="text" id="settingWhatsapp" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500" placeholder="6281234567890">
+                            <p class="text-xs text-gray-500 mt-1">Format: 628xxxx (tanpa + atau spasi)</p>
                         </div>
                         
                         <div>
@@ -173,27 +186,27 @@
                         </div>
                         
                         <div class="flex items-center space-x-3">
-                            <input type="checkbox" id="settingMaintenance" class="rounded text-primary-600">
-                            <label for="settingMaintenance" class="text-sm text-gray-700">Mode Maintenance</label>
+                            <input type="checkbox" id="settingMaintenance" class="rounded text-primary-600 focus:ring-primary-500">
+                            <label for="settingMaintenance" class="text-sm text-gray-700">Mode Maintenance (nonaktifkan aplikasi sementara)</label>
                         </div>
                         
-                        <button type="submit" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700">
+                        <button type="submit" class="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition">
                             <i class="fas fa-save mr-2"></i>Simpan Pengaturan
                         </button>
                     </form>
                 </div>
 
                 <!-- CP Management Tab -->
-                <div id="tab-cp" class="admin-tab-content hidden p-6">
-                    <div class="flex items-center justify-between mb-6">
+                <div id="tab-cp" class="admin-tab-content hidden p-4 md:p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                         <h2 class="text-lg font-semibold text-gray-800">Kelola CP Default (PAI)</h2>
-                        <button onclick="showAddDefaultCPModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700">
+                        <button onclick="showAddDefaultCPModal()" class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition">
                             <i class="fas fa-plus mr-2"></i>Tambah CP
                         </button>
                     </div>
 
                     <div class="bg-blue-50 rounded-lg p-4 mb-6">
-                        <h3 class="font-medium text-blue-800 mb-2">Panduan Input CP untuk Guru Mapel Lain:</h3>
+                        <h3 class="font-medium text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Panduan Input CP untuk Guru Mapel Lain:</h3>
                         <ol class="list-decimal list-inside text-sm text-blue-700 space-y-1">
                             <li>CP harus memiliki Fase (A-F), Kelas (1-12), Semester (Ganjil/Genap)</li>
                             <li>Setiap CP harus memiliki Elemen/Bab dan Tujuan Pembelajaran yang jelas</li>
@@ -203,8 +216,26 @@
                         </ol>
                     </div>
 
+                    <div class="bg-amber-50 rounded-lg p-4 mb-6">
+                        <h3 class="font-medium text-amber-800 mb-2"><i class="fas fa-lightbulb mr-2"></i>8 Dimensi Profil Lulusan:</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">Keimanan</span>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">Kewargaan</span>
+                            <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">Penalaran Kritis</span>
+                            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm">Kreativitas</span>
+                            <span class="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-sm">Kolaborasi</span>
+                            <span class="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm">Kemandirian</span>
+                            <span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm">Kesehatan</span>
+                            <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">Komunikasi</span>
+                        </div>
+                    </div>
+
                     <div id="defaultCPList" class="space-y-4">
                         <!-- Default CP will be loaded here -->
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-database text-4xl text-gray-300 mb-4"></i>
+                            <p>Memuat data CP default...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -216,7 +247,12 @@
         <div class="absolute inset-0 bg-black/50" onclick="hideModal('setPremiumModal')"></div>
         <div class="absolute inset-0 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl max-w-md w-full p-6">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">Set Status Premium</h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">Set Status Premium</h3>
+                    <button onclick="hideModal('setPremiumModal')" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
                 <form id="setPremiumForm">
                     <input type="hidden" id="premiumUserId">
                     
@@ -227,7 +263,7 @@
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Langganan</label>
-                        <select id="premiumType" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                        <select id="premiumType" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500">
                             <option value="free">Free</option>
                             <option value="premium">Premium Personal</option>
                             <option value="school">Paket Sekolah</option>
@@ -236,36 +272,38 @@
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Berakhir</label>
-                        <input type="date" id="premiumEndDate" class="w-full px-4 py-2 border border-gray-200 rounded-lg">
+                        <input type="date" id="premiumEndDate" class="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-primary-500">
                     </div>
                     
                     <div class="flex justify-end space-x-3">
-                        <button type="button" onclick="hideModal('setPremiumModal')" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">Simpan</button>
+                        <button type="button" onclick="hideModal('setPremiumModal')" class="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">Batal</button>
+                        <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">Simpan</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Loading & Toast -->
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 z-50 hidden bg-white/90 flex items-center justify-center">
         <div class="text-center">
             <div class="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-gray-600">Memproses...</p>
         </div>
     </div>
+    
+    <!-- Toast Container -->
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
-    <!-- Scripts -->
+    <!-- Scripts - URUTAN PENTING! -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
     
     <script src="js/firebase-config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
-    <script src="data/cp-default-data.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>
