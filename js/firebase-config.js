@@ -22,7 +22,7 @@ googleProvider.setCustomParameters({
     prompt: 'select_account'
 });
 
-// Enable offline persistence (using newer API)
+// Enable offline persistence
 db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => {
         if (err.code === 'failed-precondition') {
@@ -57,6 +57,7 @@ async function loadAppSettings() {
 }
 
 // Get current academic year
+// FIXED: Use underscore instead of slash to avoid Firestore path issues
 function getCurrentAcademicYear() {
     const now = new Date();
     const month = now.getMonth() + 1; // January is 0
@@ -65,23 +66,45 @@ function getCurrentAcademicYear() {
     // If month is June or later, next academic year starts
     if (month >= 6) {
         return {
-            current: `${year}/${year + 1}`,
-            previous: `${year - 1}/${year}`,
-            next: `${year + 1}/${year + 2}`
+            current: `${year}_${year + 1}`,
+            previous: `${year - 1}_${year}`,
+            next: `${year + 1}_${year + 2}`,
+            // Display versions with slash
+            currentDisplay: `${year}/${year + 1}`,
+            previousDisplay: `${year - 1}/${year}`,
+            nextDisplay: `${year + 1}/${year + 2}`
         };
     } else {
         return {
-            current: `${year - 1}/${year}`,
-            previous: `${year - 2}/${year - 1}`,
-            next: `${year}/${year + 1}`
+            current: `${year - 1}_${year}`,
+            previous: `${year - 2}_${year - 1}`,
+            next: `${year}_${year + 1}`,
+            // Display versions with slash
+            currentDisplay: `${year - 1}/${year}`,
+            previousDisplay: `${year - 2}/${year - 1}`,
+            nextDisplay: `${year}/${year + 1}`
         };
     }
 }
 
-// Get available academic years
+// Get available academic years (returns object with id and display)
 function getAvailableAcademicYears() {
     const years = getCurrentAcademicYear();
-    return [years.previous, years.current, years.next];
+    return [
+        { id: years.previous, display: years.previousDisplay },
+        { id: years.current, display: years.currentDisplay },
+        { id: years.next, display: years.nextDisplay }
+    ];
+}
+
+// Convert display format to ID format
+function academicYearToId(displayYear) {
+    return displayYear.replace('/', '_');
+}
+
+// Convert ID format to display format
+function academicYearToDisplay(idYear) {
+    return idYear.replace('_', '/');
 }
 
 console.log('Firebase initialized successfully');
