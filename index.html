@@ -59,44 +59,92 @@
 
             <section id="profil" class="app-section hidden">
                 <h2 class="text-2xl font-bold mb-6">Profil & Pengaturan Dasar</h2>
-                
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 class="font-bold text-lg mb-4 border-b pb-2">Data Satuan Pendidikan</h3>
+                        <h3 class="font-bold text-lg mb-4 border-b pb-2">Identitas Dokumen (Untuk Cetak)</h3>
                         <form id="form-profil" class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Nama Sekolah</label>
-                                <input type="text" id="input-sekolah" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500 focus:ring-blue-500" placeholder="SMP Negeri 1...">
+                                <input type="text" id="input-sekolah" value="SMP Negeri 1..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Kepala Sekolah</label>
+                                    <input type="text" id="input-kepsek" placeholder="Nama Lengkap & Gelar" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">NIP Kepala Sekolah</label>
+                                    <input type="text" id="input-nip-kepsek" placeholder="1980..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Nama Guru (Anda)</label>
+                                    <input type="text" id="input-guru" placeholder="Nama Lengkap & Gelar" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">NIP Guru</label>
+                                    <input type="text" id="input-nip-guru" placeholder="1985..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Nama Kepala Sekolah</label>
-                                <input type="text" id="input-kepsek" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500 focus:ring-blue-500" placeholder="Dr. H. Fulan, M.Pd.">
+                                <label class="block text-sm font-medium text-gray-700">Kota/Kab. Penetapan Tanggal</label>
+                                <input type="text" id="input-kota" value="Tasikmalaya" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500">
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Kota/Kabupaten (Untuk Tanda Tangan)</label>
-                                <input type="text" id="input-kota" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:border-blue-500 focus:ring-blue-500" placeholder="Tasikmalaya">
-                            </div>
-                            <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition font-medium w-full">Simpan Profil</button>
+                            <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 w-full">Simpan Profil Sementara</button>
                         </form>
                     </div>
 
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 class="font-bold text-lg mb-4 border-b pb-2 text-gray-800">Manajemen Database (Default)</h3>
-                        <p class="text-sm text-gray-600 mb-4">Sistem membutuhkan basis data Capaian Pembelajaran (CP) untuk menyusun ATP & Prota. Sinkronisasi data default `pai.csv` ke dalam database Firestore Anda.</p>
-                        
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
-                            <h4 class="text-sm font-bold text-blue-800 mb-1">Status Data PAI & Budi Pekerti:</h4>
-                            <p id="cp-status" class="text-xs text-blue-600">Mengecek database...</p>
-                        </div>
-
+                        <h3 class="font-bold text-lg mb-4 border-b pb-2 text-gray-800">Manajemen Database</h3>
+                        <p id="cp-status" class="text-xs text-blue-600 mb-4">Mengecek database...</p>
                         <div id="csv-alert" class="hidden text-sm p-3 rounded-md font-medium mb-4"></div>
-
-                        <button id="btn-sync-csv" class="w-full bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition font-medium flex items-center justify-center gap-2">
-                            <i class="fas fa-database"></i> Sinkronisasi pai.csv Sekarang
+                        <button id="btn-sync-csv" class="w-full bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition font-medium">
+                            <i class="fas fa-database"></i> Sinkronisasi pai.csv
                         </button>
-                        <p class="text-xs text-gray-400 mt-3 text-center">*Proses ini menggunakan Firebase Batch Write untuk efisiensi.*</p>
                     </div>
                 </div>
+            </section>
+
+            <section id="akademik" class="app-section hidden">
+                <h2 class="text-2xl font-bold mb-6">Dokumen Output Otomatis</h2>
+                
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+                    <h3 class="font-bold text-lg mb-4 border-b pb-2">Generator Prota & Promes (Format Matriks Kalender)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Sistem akan menarik data TP dari *database*, mencocokkannya dengan jadwal harian Anda, dan merendernya ke format cetak standar dinas secara otomatis.</p>
+                    
+                    <form id="form-generate-promes" class="flex flex-wrap gap-4 items-end bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div class="w-full md:w-1/5">
+                            <label class="block text-sm font-medium text-blue-800">Rombel (Kelas)</label>
+                            <input type="text" id="input-rombel-promes" placeholder="Contoh: 7A" required class="mt-1 block w-full rounded-md border-gray-300 p-2 border focus:border-blue-500">
+                        </div>
+                        <div class="w-full md:w-1/5">
+                            <label class="block text-sm font-medium text-blue-800">Tingkat / Fase</label>
+                            <select id="select-tingkat-promes" class="mt-1 block w-full rounded-md border-gray-300 p-2 border focus:border-blue-500">
+                                <option value="1">Kelas 1 (A)</option><option value="2">Kelas 2 (A)</option>
+                                <option value="3">Kelas 3 (B)</option><option value="4">Kelas 4 (B)</option>
+                                <option value="5">Kelas 5 (C)</option><option value="6">Kelas 6 (C)</option>
+                                <option value="7" selected>Kelas 7 (D)</option><option value="8">Kelas 8 (D)</option><option value="9">Kelas 9 (D)</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/5">
+                            <label class="block text-sm font-medium text-blue-800">Semester</label>
+                            <select id="select-semester-promes" class="mt-1 block w-full rounded-md border-gray-300 p-2 border focus:border-blue-500">
+                                <option value="Ganjil">Ganjil (Jul-Des)</option>
+                                <option value="Genap">Genap (Jan-Jun)</option>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/5">
+                            <label class="block text-sm font-medium text-blue-800">Alokasi JP per TP</label>
+                            <input type="number" id="input-jp-promes" value="3" min="1" required class="mt-1 block w-full rounded-md border-gray-300 p-2 border focus:border-blue-500" title="Rata-rata JP per pertemuan untuk materi tersebut">
+                        </div>
+                        <button type="submit" id="btn-generate-promes" class="w-full md:w-auto bg-green-600 text-white px-6 py-2 rounded shadow hover:bg-green-700 font-medium">
+                            <i class="fas fa-magic"></i> Generate & Cetak
+                        </button>
+                    </form>
+                </div>
+                
+                <div id="print-area-promes" class="hidden"></div>
             </section>
 
             <section id="jadwal" class="app-section hidden">
