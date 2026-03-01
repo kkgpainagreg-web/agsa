@@ -1,357 +1,326 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Guru Super App - SaaS Kolaboratif</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+    <meta name="description" content="AGSA - Admin Guru Super App. Aplikasi administrasi guru dengan konsep Single Input Multi Output.">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AGSA">
+    
+    <title>AGSA - Admin Guru Super App</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232563eb'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial Black'%3EA%3C/text%3E%3C/svg%3E">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { 
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        arabic: ['Amiri', 'serif']
-                    },
                     colors: {
-                        primary: { 50: '#eef2ff', 100: '#e0e7ff', 200: '#c7d2fe', 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81' },
-                        accent: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857' },
-                        dark: { 800: '#1e293b', 900: '#0f172a' }
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; min-height: 100vh; }
-        
-        /* Arabic/RTL Support */
-        .arabic-text, [dir="rtl"] {
-            font-family: 'Amiri', 'Traditional Arabic', serif;
-            direction: rtl;
-            text-align: right;
-            line-height: 2;
-            font-size: 1.1em;
-        }
-        .mixed-content {
-            unicode-bidi: plaintext;
-        }
-        .rtl-container {
-            direction: rtl;
-            text-align: right;
-        }
-        .ltr-container {
-            direction: ltr;
-            text-align: left;
+        * {
+            font-family: 'Inter', system-ui, sans-serif;
         }
         
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        
-        /* Gradients */
-        .gradient-hero { background: linear-gradient(135deg, #312e81 0%, #4f46e5 40%, #06b6d4 100%); }
-        .gradient-card { background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%); }
-        .gradient-pro { background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); }
-        .gradient-sidebar { background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%); }
-        
-        /* Glass Effect */
-        .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-        .glass-dark { background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); }
-        
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        
-        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-        .animate-slide-in { animation: slideInLeft 0.3s ease-out; }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-        .animate-shimmer { 
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
         }
         
-        /* Sidebar */
-        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 2px; }
-        
-        /* Navigation */
-        .nav-item { 
-            display: flex; align-items: center; gap: 12px; 
-            padding: 12px 16px; border-radius: 10px; 
-            transition: all 0.2s ease; cursor: pointer;
-            color: #94a3b8; font-weight: 500;
-        }
-        .nav-item:hover { background: rgba(99,102,241,0.1); color: #e2e8f0; }
-        .nav-item.active { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; box-shadow: 0 4px 15px rgba(79,70,229,0.4); }
-        .nav-item .icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; }
-        
-        /* Cards */
-        .card { 
-            background: white; border-radius: 16px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0; transition: all 0.3s ease;
-        }
-        .card:hover { box-shadow: 0 10px 40px rgba(0,0,0,0.1); transform: translateY(-2px); }
-        .card-flat { box-shadow: none; border: 1px solid #e2e8f0; }
-        .card-flat:hover { transform: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        
-        /* Buttons */
-        .btn { 
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 12px 24px; border-radius: 10px; font-weight: 600;
-            transition: all 0.2s ease; cursor: pointer; border: none;
-        }
-        .btn-primary { background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); color: white; }
-        .btn-primary:hover { background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%); box-shadow: 0 4px 20px rgba(79,70,229,0.4); transform: translateY(-1px); }
-        .btn-secondary { background: #f1f5f9; color: #475569; }
-        .btn-secondary:hover { background: #e2e8f0; }
-        .btn-success { background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: white; }
-        .btn-success:hover { box-shadow: 0 4px 20px rgba(16,185,129,0.4); }
-        .btn-warning { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; }
-        .btn-outline { background: transparent; border: 2px solid #e2e8f0; color: #475569; }
-        .btn-outline:hover { border-color: #4f46e5; color: #4f46e5; background: #eef2ff; }
-        .btn-sm { padding: 8px 16px; font-size: 0.875rem; border-radius: 8px; }
-        .btn-lg { padding: 16px 32px; font-size: 1.125rem; }
-        
-        /* Inputs */
-        .input-field {
-            width: 100%; padding: 12px 16px; border-radius: 10px;
-            border: 2px solid #e2e8f0; background: white;
-            font-size: 0.95rem; transition: all 0.2s ease;
-            outline: none;
-        }
-        .input-field:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
-        .input-field::placeholder { color: #94a3b8; }
-        .input-dark { background: #1e293b; border-color: #334155; color: white; }
-        .input-dark:focus { border-color: #6366f1; }
-        
-        /* Badges */
-        .badge { 
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
-        }
-        .badge-pro { background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; }
-        .badge-free { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
-        .badge-info { background: #e0e7ff; color: #4338ca; }
-        .badge-success { background: #d1fae5; color: #047857; }
-        .badge-warning { background: #fef3c7; color: #b45309; }
-        
-        /* Document Styles */
-        .paper-preview { 
-            background: white; margin: 20px auto; padding: 20mm;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.1);
-            border-radius: 4px; max-width: 210mm; min-height: 297mm;
-        }
-        .paper-preview.landscape { max-width: 297mm; min-height: 210mm; }
-        .paper-preview.f4 { max-width: 215.9mm; }
-        .paper-preview.f4.landscape { max-width: 330.2mm; min-height: 215.9mm; }
-        
-        .doc-table { width: 100%; border-collapse: collapse; font-size: 10pt; }
-        .doc-table th, .doc-table td { border: 1px solid #374151; padding: 8px; text-align: left; vertical-align: top; }
-        .doc-table th { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); font-weight: 600; text-align: center; }
-        .doc-table-sm th, .doc-table-sm td { padding: 4px 6px; font-size: 9pt; }
-        
-        [contenteditable="true"]:hover { background: #fef9c3; outline: 2px dashed #fbbf24; border-radius: 2px; }
-        [contenteditable="true"]:focus { background: #fef3c7; outline: 2px solid #f59e0b; }
-        
-        .signature-area { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 5%; }
-        .signature-box { text-align: center; font-size: 11pt; min-width: 200px; }
-        .signature-name { border-bottom: 1px solid black; font-weight: bold; margin-top: 80px; padding-bottom: 2px; }
-        
-        /* Promes cells */
-        .promes-cell { 
-            width: 20px; height: auto; text-align: center; 
-            vertical-align: middle; font-size: 8pt; padding: 2px !important;
-        }
-        .promes-active { 
-            background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%) !important;
-            color: #1e40af; font-weight: bold;
-        }
-        .promes-holiday { 
-            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important; 
-            color: #991b1b; font-weight: 600; font-size: 6pt;
-            writing-mode: vertical-rl; text-orientation: mixed;
-            transform: rotate(180deg); white-space: nowrap;
-            padding: 4px 2px !important;
-        }
-        .promes-holiday-horizontal {
-            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%) !important; 
-            color: #991b1b; font-weight: 600; font-size: 7pt;
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        /* Modal */
-        .modal-overlay { 
-            display: none; position: fixed; inset: 0; 
-            background: rgba(15,23,42,0.7); backdrop-filter: blur(4px);
-            z-index: 1000; justify-content: center; align-items: center; padding: 16px;
-        }
-        .modal-content { 
-            background: white; width: 100%; max-width: 600px; 
-            border-radius: 20px; padding: 32px; 
-            max-height: 90vh; overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-            animation: fadeIn 0.3s ease-out;
-        }
-        .modal-lg { max-width: 900px; }
-        
-        /* Stats Card */
-        .stat-card {
-            background: white; border-radius: 16px; padding: 20px;
-            border: 1px solid #e2e8f0; position: relative; overflow: hidden;
-        }
-        .stat-card::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
-            background: linear-gradient(90deg, #4f46e5, #06b6d4);
-        }
-        .stat-icon {
-            width: 48px; height: 48px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        .card-hover {
+            transition: all 0.3s ease;
         }
         
-        /* Schedule Table */
-        .schedule-row {
-            display: grid; grid-template-columns: 100px 1fr 1fr 80px 60px 50px;
-            gap: 8px; padding: 12px; background: #f8fafc; border-radius: 10px;
-            margin-bottom: 8px; align-items: center;
-        }
-        .schedule-row:hover { background: #f1f5f9; }
-        .schedule-row select, .schedule-row input {
-            padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
-            font-size: 0.875rem; background: white;
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
         }
         
-        /* CSV Info */
-        .csv-info { 
-            padding: 12px 16px; border-radius: 10px; font-size: 0.875rem;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .csv-info.success { background: #d1fae5; color: #047857; }
-        .csv-info.error { background: #fee2e2; color: #b91c1c; }
-        .csv-info.loading { background: #e0e7ff; color: #4338ca; }
-        
-        /* Print Styles */
-        @media print {
-            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .no-print, #app-sidebar, #app-header, .modal-overlay { display: none !important; }
-            main { margin: 0 !important; padding: 0 !important; }
-            .paper-preview { 
-                margin: 0; padding: 15mm; box-shadow: none; 
-                page-break-after: always; border-radius: 0;
-            }
-            .paper-preview:last-child { page-break-after: auto; }
-            @page { size: A4; margin: 0; }
-            @page landscape { size: A4 landscape; }
-            [contenteditable="true"]:hover { background: transparent !important; outline: none !important; }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.5;
+            animation: blob 7s infinite;
         }
         
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .paper-preview { padding: 10mm; max-width: 100%; }
-            .paper-preview.landscape { min-height: auto; }
-            .schedule-row { grid-template-columns: 1fr 1fr; }
+        @keyframes blob {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(20px, -30px) scale(1.1); }
+            50% { transform: translate(-20px, 20px) scale(0.9); }
+            75% { transform: translate(30px, 30px) scale(1.05); }
         }
-        @media (max-width: 640px) {
-            .paper-preview { padding: 5mm; font-size: 9pt; }
-            .signature-area { flex-direction: column; gap: 40px; }
-            .modal-content { padding: 20px; border-radius: 16px; }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 24px;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .loading-overlay.hidden {
+            display: none;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="loading-spinner mx-auto mb-4" style="width: 48px; height: 48px; border-width: 4px;"></div>
+            <p class="text-gray-600 font-medium">Memuat...</p>
+        </div>
+    </div>
 
-<!-- ==================== LANDING PAGE ==================== -->
-<div id="landing-page" class="min-h-screen">
-    <!-- Navbar -->
-    <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-slate-200/50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white text-xl shadow-lg">📚</div>
+    <!-- Decorative Blobs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="blob w-96 h-96 bg-blue-400 top-0 -left-48"></div>
+        <div class="blob w-96 h-96 bg-purple-400 bottom-0 -right-48" style="animation-delay: -3s;"></div>
+    </div>
+
+    <!-- Header/Navbar -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                        <span class="text-white font-bold text-xl">A</span>
+                    </div>
                     <div>
-                        <span class="font-bold text-lg text-slate-800">Admin Guru</span>
-                        <span class="badge-pro ml-2 text-[10px]">SUPER APP</span>
+                        <h1 class="text-xl font-bold text-gray-900">AGSA</h1>
+                        <p class="text-xs text-gray-500 -mt-1">Admin Guru Super App</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-6">
-                    <a href="#fitur" class="text-slate-600 hover:text-primary-600 font-medium hidden md:block transition">Fitur</a>
-                    <a href="#pricing" class="text-slate-600 hover:text-primary-600 font-medium hidden md:block transition">Harga</a>
-                    <button onclick="AuthSystem.showLoginModal()" class="btn btn-primary btn-sm shadow-lg">
-                        Masuk / Daftar
+                
+                <!-- Navigation Links (Desktop) -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#fitur" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">Fitur</a>
+                    <a href="#cara-kerja" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">Cara Kerja</a>
+                    <a href="#harga" class="text-gray-600 hover:text-blue-600 transition-colors font-medium">Harga</a>
+                </div>
+                
+                <!-- Login Button -->
+                <div class="flex items-center space-x-4">
+                    <button id="btn-login" class="inline-flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Masuk dengan Google
                     </button>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </header>
 
-    <!-- Hero Section -->
-    <section class="gradient-hero min-h-screen flex items-center pt-20 pb-16 relative overflow-hidden">
-        <div class="absolute inset-0 opacity-10">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-cyan-300 rounded-full blur-3xl"></div>
-        </div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div class="grid lg:grid-cols-2 gap-16 items-center">
-                <div class="text-white">
-                    <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-4 py-2 rounded-full text-sm font-medium mb-8 border border-white/20">
-                        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                        Platform #1 Administrasi Guru Indonesia
+    <!-- Main Content -->
+    <main class="relative z-10">
+        <!-- Hero Section -->
+        <section class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center max-w-4xl mx-auto">
+                    <!-- Badge -->
+                    <div class="inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-100 rounded-full mb-6 fade-in">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                        <span class="text-sm text-blue-700 font-medium">Kurikulum Merdeka Ready</span>
                     </div>
-                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
-                        Otomatisasi<br>
-                        <span class="bg-gradient-to-r from-cyan-300 to-emerald-300 bg-clip-text text-transparent">Administrasi Guru</span><br>
-                        Dalam Hitungan Detik
+                    
+                    <!-- Headline -->
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6 fade-in" style="animation-delay: 0.1s;">
+                        Input Sekali,<br>
+                        <span class="gradient-text">Semua Dokumen Jadi</span>
                     </h1>
-                    <p class="text-xl text-blue-100 mb-10 leading-relaxed max-w-xl">
-                        Generate ATP, Prota, Promes, Modul Ajar, LKPD, Jurnal, Absensi, KKTP, Bank Soal 
-                        secara otomatis berbasis <strong>Kurikulum Merdeka</strong>. Mendukung multi-kelas dan teks Arab (RTL).
+                    
+                    <!-- Subheadline -->
+                    <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto fade-in" style="animation-delay: 0.2s;">
+                        AGSA adalah aplikasi administrasi guru dengan konsep <strong>Single Input → Multi Output</strong>. 
+                        ATP, Prota, Promes, Modul Ajar, Jurnal, hingga Rapor - semua otomatis sinkron.
                     </p>
-                    <div class="flex flex-wrap gap-4">
-                        <button onclick="AuthSystem.showLoginModal()" class="btn btn-lg bg-white text-primary-700 hover:bg-slate-100 shadow-2xl">
-                            🚀 Mulai Gratis Sekarang
+                    
+                    <!-- CTA Buttons -->
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 fade-in" style="animation-delay: 0.3s;">
+                        <button id="btn-cta-login" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-semibold text-lg transition-all shadow-xl shadow-blue-500/30 hover:shadow-blue-500/40 hover:scale-105">
+                            <svg class="w-6 h-6 mr-2" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            Mulai Gratis Sekarang
                         </button>
-                        <a href="#fitur" class="btn btn-lg bg-white/10 text-white border-2 border-white/30 hover:bg-white/20">
-                            Pelajari Fitur →
+                        <a href="#cara-kerja" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl font-semibold text-lg transition-all border border-gray-200 hover:border-gray-300">
+                            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Lihat Demo
                         </a>
                     </div>
-                    <div class="mt-10 flex flex-wrap items-center gap-6 text-sm text-blue-200">
-                        <span class="flex items-center gap-2"><span class="text-green-400">✓</span> Gratis Selamanya</span>
-                        <span class="flex items-center gap-2"><span class="text-green-400">✓</span> Multi-Kelas Support</span>
-                        <span class="flex items-center gap-2"><span class="text-green-400">✓</span> RTL Arabic Support</span>
+                    
+                    <!-- Stats -->
+                    <div class="grid grid-cols-3 gap-8 max-w-xl mx-auto fade-in" style="animation-delay: 0.4s;">
+                        <div>
+                            <div class="text-3xl font-bold text-gray-900">10+</div>
+                            <div class="text-sm text-gray-500">Dokumen Otomatis</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-gray-900">90%</div>
+                            <div class="text-sm text-gray-500">Hemat Waktu</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl font-bold text-gray-900">0</div>
+                            <div class="text-sm text-gray-500">Input Ganda</div>
+                        </div>
                     </div>
                 </div>
-                <div class="hidden lg:block animate-float">
-                    <div class="bg-white/5 backdrop-blur rounded-3xl p-8 border border-white/10">
-                        <div class="bg-white rounded-2xl p-6 shadow-2xl">
-                            <div class="flex items-center gap-2 mb-4">
-                                <div class="w-3 h-3 rounded-full bg-red-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                <div class="w-3 h-3 rounded-full bg-green-400"></div>
-                                <span class="ml-auto text-xs text-slate-400">Admin Guru Super App</span>
+                
+                <!-- Hero Image/Preview -->
+                <div class="mt-16 max-w-5xl mx-auto fade-in" style="animation-delay: 0.5s;">
+                    <div class="bg-white rounded-2xl shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                        <div class="bg-gray-100 px-4 py-3 flex items-center space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                            <div class="flex-1 text-center">
+                                <span class="text-xs text-gray-500">app.agsa.id</span>
                             </div>
-                            <div class="space-y-3">
-                                <div class="h-6 bg-gradient-to-r from-primary-100 to-primary-50 rounded-lg w-3/4"></div>
-                                <div class="h-4 bg-slate-100 rounded w-1/2"></div>
-                                <div class="h-32 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl mt-4 p-4">
-                                    <div class="grid grid-cols-4 gap-2 h-full">
-                                        <div class="bg-primary-100 rounded-lg"></div>
-                                        <div class="bg-accent-100 rounded-lg"></div>
-                                        <div class="bg-amber-100 rounded-lg"></div>
-                                        <div class="bg-rose-100 rounded-lg"></div>
+                        </div>
+                        <div class="p-8 bg-gradient-to-br from-blue-50 to-white">
+                            <div class="grid grid-cols-4 gap-4">
+                                <!-- Sidebar Preview -->
+                                <div class="col-span-1 bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
+                                    <div class="h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                        <span class="text-white text-xs font-medium">Dashboard</span>
+                                    </div>
+                                    <div class="h-6 bg-gray-100 rounded"></div>
+                                    <div class="h-6 bg-gray-100 rounded"></div>
+                                    <div class="h-6 bg-gray-100 rounded"></div>
+                                    <div class="h-6 bg-gray-100 rounded"></div>
+                                    <div class="h-6 bg-gray-100 rounded"></div>
+                                </div>
+                                <!-- Main Content Preview -->
+                                <div class="col-span-3 space-y-4">
+                                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                                        <div class="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
+                                        <div class="grid grid-cols-4 gap-3">
+                                            <div class="h-20 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <span class="text-blue-600 text-xs font-medium">ATP</span>
+                                            </div>
+                                            <div class="h-20 bg-green-100 rounded-lg flex items-center justify-center">
+                                                <span class="text-green-600 text-xs font-medium">Prota</span>
+                                            </div>
+                                            <div class="h-20 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                <span class="text-purple-600 text-xs font-medium">Promes</span>
+                                            </div>
+                                            <div class="h-20 bg-orange-100 rounded-lg flex items-center justify-center">
+                                                <span class="text-orange-600 text-xs font-medium">Modul</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                                            <div class="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                                            <div class="space-y-2">
+                                                <div class="h-2 bg-gray-100 rounded"></div>
+                                                <div class="h-2 bg-gray-100 rounded w-3/4"></div>
+                                            </div>
+                                        </div>
+                                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                                            <div class="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                                            <div class="space-y-2">
+                                                <div class="h-2 bg-gray-100 rounded"></div>
+                                                <div class="h-2 bg-gray-100 rounded w-3/4"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -359,2048 +328,507 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Features & Pricing sections... (same as before) -->
-    <section id="fitur" class="py-24 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span class="badge badge-info mb-4">✨ Fitur Lengkap</span>
-            <h2 class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4">Semua yang Guru Butuhkan</h2>
-            <p class="text-xl text-slate-600 max-w-2xl mx-auto mb-12">Platform terintegrasi untuk Kurikulum Merdeka dengan dukungan Multi-Kelas dan RTL Arabic</p>
-            <div class="grid md:grid-cols-4 gap-6">
-                <div class="card p-6 text-left"><div class="stat-icon bg-primary-100 text-primary-600 mb-4">📋</div><h3 class="font-bold">ATP & Prota</h3><p class="text-slate-600 text-sm mt-2">Generate otomatis per kelas</p><span class="badge badge-free mt-3">FREE</span></div>
-                <div class="card p-6 text-left"><div class="stat-icon bg-accent-100 text-accent-600 mb-4">📅</div><h3 class="font-bold">Kalender Multi-Kelas</h3><p class="text-slate-600 text-sm mt-2">Satu kalender untuk semua jadwal</p><span class="badge badge-free mt-3">FREE</span></div>
-                <div class="card p-6 text-left"><div class="stat-icon bg-amber-100 text-amber-600 mb-4">📆</div><h3 class="font-bold">Promes + Libur</h3><p class="text-slate-600 text-sm mt-2">Dengan marking hari libur otomatis</p><span class="badge badge-pro mt-3">PRO</span></div>
-                <div class="card p-6 text-left"><div class="stat-icon bg-rose-100 text-rose-600 mb-4">🕌</div><h3 class="font-bold">RTL Arabic Support</h3><p class="text-slate-600 text-sm mt-2">Untuk mata pelajaran PAI</p><span class="badge badge-pro mt-3">PRO</span></div>
-            </div>
-        </div>
-    </section>
-
-    <section id="pricing" class="py-24 bg-slate-50">
-        <div class="max-w-5xl mx-auto px-4 text-center">
-            <h2 class="text-3xl font-bold mb-12">Pilih Paket Anda</h2>
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="card p-8 text-left">
-                    <h3 class="text-2xl font-bold">Gratis</h3>
-                    <p class="text-5xl font-extrabold my-6">Rp 0</p>
-                    <ul class="space-y-2 mb-8 text-slate-600">
-                        <li>✓ Kalender & Jadwal Multi-Kelas</li>
-                        <li>✓ ATP & Prota</li>
-                        <li class="text-slate-400">✗ Promes, Modul, LKPD, dst</li>
-                    </ul>
-                    <button onclick="AuthSystem.showLoginModal()" class="btn btn-outline w-full">Mulai Gratis</button>
+        <!-- Features Section -->
+        <section id="fitur" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Semua yang Guru Butuhkan</h2>
+                    <p class="text-xl text-gray-600 max-w-2xl mx-auto">Input data sekali, semua dokumen ter-generate otomatis dan sinkron.</p>
                 </div>
-                <div class="card p-8 text-left bg-gradient-to-br from-primary-600 to-primary-800 text-white">
-                    <h3 class="text-2xl font-bold">Pro</h3>
-                    <p class="text-5xl font-extrabold my-6">Rp 99K<span class="text-lg font-normal">/tahun</span></p>
-                    <ul class="space-y-2 mb-8">
-                        <li>✓ Semua fitur Gratis</li>
-                        <li>✓ Promes dengan Hari Libur</li>
-                        <li>✓ Modul, LKPD, Jurnal, Absensi</li>
-                        <li>✓ KKTP, Nilai, Bank Soal</li>
-                        <li>✓ RTL Arabic Support</li>
-                    </ul>
-                    <button onclick="SubscriptionSystem.showUpgradeModal()" class="btn w-full bg-white text-primary-700">Upgrade</button>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <footer class="bg-dark-900 text-slate-400 py-12 text-center">
-        <p>© 2025 Admin Guru Super App. All rights reserved.</p>
-    </footer>
-</div>
-
-<!-- ==================== MAIN APP ==================== -->
-<div id="main-app" class="hidden">
-    <!-- Mobile Header -->
-    <header id="app-header" class="lg:hidden fixed top-0 left-0 right-0 z-40 glass border-b border-slate-200 h-16 flex items-center justify-between px-4">
-        <button onclick="UISystem.toggleSidebar()" class="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-xl">☰</button>
-        <span class="font-bold">Admin Guru</span>
-        <button onclick="UISystem.showAIAssistant()" class="w-10 h-10 flex items-center justify-center text-primary-600">🤖</button>
-    </header>
-
-    <!-- Sidebar -->
-    <aside id="app-sidebar" class="fixed left-0 top-0 bottom-0 w-72 gradient-sidebar text-slate-300 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 flex flex-col shadow-2xl">
-        <div class="p-5 border-b border-slate-700/50">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white text-xl">📚</div>
-                <div>
-                    <span class="font-bold text-white text-lg">Admin Guru</span>
-                    <div class="mt-0.5"><span id="user-badge" class="badge badge-free text-[10px]">FREE</span></div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="flex-1 overflow-y-auto sidebar-scroll p-4">
-            <nav class="space-y-1">
-                <div onclick="UISystem.navigateTo('dashboard')" class="nav-item active" data-page="dashboard"><span class="icon">📊</span><span>Dashboard</span></div>
                 
-                <div class="pt-4 pb-2"><span class="text-xs text-slate-500 uppercase font-bold">Pengaturan</span></div>
-                <div onclick="UISystem.navigateTo('profil-guru')" class="nav-item" data-page="profil-guru"><span class="icon">👤</span><span>Profil Guru</span></div>
-                <div onclick="UISystem.navigateTo('profil-sekolah')" class="nav-item" data-page="profil-sekolah"><span class="icon">🏫</span><span>Profil Sekolah</span></div>
-                <div onclick="UISystem.navigateTo('data-siswa')" class="nav-item" data-page="data-siswa"><span class="icon">👥</span><span>Data Siswa</span></div>
-                <div onclick="UISystem.navigateTo('kurikulum')" class="nav-item" data-page="kurikulum"><span class="icon">📚</span><span>Kurikulum & Mapel</span></div>
-                <div onclick="UISystem.navigateTo('kalender')" class="nav-item" data-page="kalender"><span class="icon">📅</span><span>Kalender & Jadwal</span><span class="badge badge-free ml-auto text-[9px]">FREE</span></div>
-                
-                <div class="pt-4 pb-2"><span class="text-xs text-slate-500 uppercase font-bold">Generate Dokumen</span></div>
-                <div onclick="UISystem.navigateTo('doc-atp')" class="nav-item" data-page="doc-atp"><span class="icon">📋</span><span>ATP & Prota</span><span class="badge badge-free ml-auto text-[9px]">FREE</span></div>
-                <div onclick="UISystem.navigateTo('doc-promes')" class="nav-item" data-page="doc-promes"><span class="icon">📆</span><span>Promes</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('doc-modul')" class="nav-item" data-page="doc-modul"><span class="icon">📖</span><span>Modul Ajar</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('doc-lkpd')" class="nav-item" data-page="doc-lkpd"><span class="icon">📝</span><span>LKPD</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('doc-jurnal')" class="nav-item" data-page="doc-jurnal"><span class="icon">📔</span><span>Jurnal</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('doc-absensi')" class="nav-item" data-page="doc-absensi"><span class="icon">✅</span><span>Absensi</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('doc-kktp')" class="nav-item" data-page="doc-kktp"><span class="icon">🎯</span><span>KKTP & Nilai</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                <div onclick="UISystem.navigateTo('bank-soal')" class="nav-item" data-page="bank-soal"><span class="icon">❓</span><span>Bank Soal</span><span class="badge badge-pro ml-auto text-[9px]">PRO</span></div>
-                
-                <div class="pt-4 pb-2"><span class="text-xs text-slate-500 uppercase font-bold">Lainnya</span></div>
-                <div onclick="UISystem.navigateTo('subscription')" class="nav-item" data-page="subscription"><span class="icon">💎</span><span>Subscription</span></div>
-                <div id="nav-superadmin" onclick="UISystem.navigateTo('super-admin')" class="nav-item hidden" data-page="super-admin"><span class="icon">👑</span><span>Super Admin</span></div>
-            </nav>
-        </div>
-        
-        <div class="p-4 border-t border-slate-700/50 space-y-3">
-            <button onclick="UISystem.showAIAssistant()" class="btn w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white">🤖 AI Assistant</button>
-            <div class="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl">
-                <div class="w-10 h-10 bg-primary-600 rounded-full flex items-center justify-center text-white font-bold" id="user-avatar">U</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-sm font-semibold text-white truncate" id="user-name">User</div>
-                    <div class="text-xs text-slate-400 truncate" id="user-email">email</div>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <!-- Feature 1 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-blue-100 text-blue-600 mb-6">📄</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">ATP Otomatis</h3>
+                        <p class="text-gray-600">Import CSV Capaian Pembelajaran, ATP langsung ter-generate dengan kode TP yang sistematis.</p>
+                    </div>
+                    
+                    <!-- Feature 2 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-green-100 text-green-600 mb-6">📅</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Prota & Promes Sinkron</h3>
+                        <p class="text-gray-600">Terhubung dengan kalender pendidikan dan jadwal. Minggu efektif otomatis terhitung.</p>
+                    </div>
+                    
+                    <!-- Feature 3 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-purple-100 text-purple-600 mb-6">📚</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Modul Ajar + LKPD</h3>
+                        <p class="text-gray-600">Generate modul ajar lengkap dengan opsi LKPD. Support RTL untuk Bahasa Arab.</p>
+                    </div>
+                    
+                    <!-- Feature 4 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-orange-100 text-orange-600 mb-6">📝</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Jurnal Otomatis</h3>
+                        <p class="text-gray-600">Jurnal harian ter-isi otomatis dari Promes. Tinggal tambahkan absensi.</p>
+                    </div>
+                    
+                    <!-- Feature 5 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-red-100 text-red-600 mb-6">📊</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">KKTP & Nilai</h3>
+                        <p class="text-gray-600">Nilai formatif, sumatif, ATS, ASAS. Nilai rapor terhitung otomatis dengan 8 Dimensi Profil Lulusan.</p>
+                    </div>
+                    
+                    <!-- Feature 6 -->
+                    <div class="bg-gray-50 rounded-2xl p-8 card-hover">
+                        <div class="feature-icon bg-indigo-100 text-indigo-600 mb-6">🤖</div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">AI Assistant</h3>
+                        <p class="text-gray-600">Generate CSV, template CP, prompt soal, dan convert materi dengan bantuan AI.</p>
+                    </div>
                 </div>
-                <button onclick="AuthSystem.logout()" class="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400" title="Logout">🚪</button>
+                
+                <!-- 8 Dimensi Profil Lulusan -->
+                <div class="mt-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-8">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">8 Dimensi Profil Lulusan</h3>
+                        <p class="text-gray-600">Terintegrasi di setiap Tujuan Pembelajaran</p>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">🙏</div>
+                            <div class="text-sm font-medium text-gray-900">Keimanan</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">🏛️</div>
+                            <div class="text-sm font-medium text-gray-900">Kewargaan</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">🧠</div>
+                            <div class="text-sm font-medium text-gray-900">Penalaran Kritis</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">💡</div>
+                            <div class="text-sm font-medium text-gray-900">Kreativitas</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">🤝</div>
+                            <div class="text-sm font-medium text-gray-900">Kolaborasi</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">🎯</div>
+                            <div class="text-sm font-medium text-gray-900">Kemandirian</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">💪</div>
+                            <div class="text-sm font-medium text-gray-900">Kesehatan</div>
+                        </div>
+                        <div class="bg-white rounded-xl p-4 text-center shadow-sm">
+                            <div class="text-2xl mb-2">💬</div>
+                            <div class="text-sm font-medium text-gray-900">Komunikasi</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </aside>
+        </section>
 
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden" onclick="UISystem.toggleSidebar()"></div>
+        <!-- How It Works Section -->
+        <section id="cara-kerja" class="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Cara Kerja AGSA</h2>
+                    <p class="text-xl text-gray-600 max-w-2xl mx-auto">3 langkah sederhana untuk administrasi yang rapi</p>
+                </div>
+                
+                <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Step 1 -->
+                    <div class="relative">
+                        <div class="bg-white rounded-2xl p-8 shadow-lg relative z-10">
+                            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mb-6">1</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-3">Input Data Awal</h3>
+                            <p class="text-gray-600 mb-4">Isi profil guru, sekolah, kalender, jadwal, dan import CSV Capaian Pembelajaran.</p>
+                            <ul class="space-y-2 text-sm text-gray-500">
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2"></span>Profil & Sekolah</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2"></span>Kalender Pendidikan</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2"></span>Jadwal Pelajaran</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-blue-600 rounded-full mr-2"></span>Data CP (CSV)</li>
+                            </ul>
+                        </div>
+                        <div class="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-blue-200 z-0"></div>
+                    </div>
+                    
+                    <!-- Step 2 -->
+                    <div class="relative">
+                        <div class="bg-white rounded-2xl p-8 shadow-lg relative z-10">
+                            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mb-6">2</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-3">Generate Otomatis</h3>
+                            <p class="text-gray-600 mb-4">Klik Generate, semua dokumen terbuat otomatis dan saling terhubung.</p>
+                            <ul class="space-y-2 text-sm text-gray-500">
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-green-600 rounded-full mr-2"></span>ATP ter-generate</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-green-600 rounded-full mr-2"></span>Prota sinkron ATP</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-green-600 rounded-full mr-2"></span>Promes sinkron semua</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-green-600 rounded-full mr-2"></span>Modul & Jurnal ready</li>
+                            </ul>
+                        </div>
+                        <div class="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-blue-200 z-0"></div>
+                    </div>
+                    
+                    <!-- Step 3 -->
+                    <div class="relative">
+                        <div class="bg-white rounded-2xl p-8 shadow-lg relative z-10">
+                            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl mb-6">3</div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-3">Cetak & Gunakan</h3>
+                            <p class="text-gray-600 mb-4">Edit jika perlu, cetak, atau export. Siap supervisi kapan saja.</p>
+                            <ul class="space-y-2 text-sm text-gray-500">
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-purple-600 rounded-full mr-2"></span>Preview dokumen</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-purple-600 rounded-full mr-2"></span>Edit jika perlu</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-purple-600 rounded-full mr-2"></span>Cetak langsung</li>
+                                <li class="flex items-center"><span class="w-1.5 h-1.5 bg-purple-600 rounded-full mr-2"></span>Export PDF</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <main class="lg:ml-72 pt-16 lg:pt-0 min-h-screen bg-slate-50">
-        <div id="page-container" class="p-4 lg:p-8 max-w-7xl mx-auto"></div>
+        <!-- Pricing Section -->
+        <section id="harga" class="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Pilih Paket Anda</h2>
+                    <p class="text-xl text-gray-600 max-w-2xl mx-auto">Mulai gratis, upgrade kapan saja</p>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    <!-- Free Plan -->
+                    <div class="bg-gray-50 rounded-2xl p-8 border-2 border-gray-100">
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">Gratis</h3>
+                            <div class="text-4xl font-bold text-gray-900">Rp 0</div>
+                            <p class="text-gray-500 mt-2">Selamanya</p>
+                        </div>
+                        
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center text-gray-700">
+                                <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Kalender Pendidikan
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Jadwal Pelajaran
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                ATP (Alur Tujuan Pembelajaran)
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <svg class="w-5 h-5 text-green-500 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Prota (Program Tahunan)
+                            </li>
+                            <li class="flex items-center text-gray-400">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Promes, Modul, Jurnal
+                            </li>
+                            <li class="flex items-center text-gray-400">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                KKTP, Daftar Nilai, Bank Soal
+                            </li>
+                            <li class="flex items-center text-gray-400">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                AI Assistant
+                            </li>
+                        </ul>
+                        
+                        <button id="btn-free" class="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-semibold transition-colors">
+                            Mulai Gratis
+                        </button>
+                    </div>
+                    
+                    <!-- Premium Plan -->
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white relative overflow-hidden">
+                        <div class="absolute top-4 right-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full">POPULER</div>
+                        
+                        <div class="text-center mb-8">
+                            <h3 class="text-2xl font-bold mb-2">Premium</h3>
+                            <div class="text-4xl font-bold">Rp 99.000</div>
+                            <p class="text-blue-200 mt-2">per tahun</p>
+                        </div>
+                        
+                        <ul class="space-y-4 mb-8">
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Semua fitur Gratis
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Promes (Program Semester)
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Modul Ajar + LKPD
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Jurnal Harian + Absensi
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                KKTP + Daftar Nilai
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Bank Soal Multi Tipe
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                AI Assistant
+                            </li>
+                            <li class="flex items-center">
+                                <svg class="w-5 h-5 text-yellow-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Support RTL (Bahasa Arab)
+                            </li>
+                        </ul>
+                        
+                        <button id="btn-premium" class="w-full py-3 bg-white hover:bg-gray-100 text-blue-600 rounded-xl font-semibold transition-colors">
+                            Upgrade Premium
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- School Plan Note -->
+                <div class="text-center mt-8">
+                    <p class="text-gray-600">
+                        Butuh untuk seluruh sekolah? 
+                        <a href="#" id="btn-school-plan" class="text-blue-600 hover:text-blue-700 font-medium">Hubungi untuk Paket Sekolah →</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="py-20 px-4 sm:px-6 lg:px-8 gradient-bg">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-6">Siap Menghemat Waktu Anda?</h2>
+                <p class="text-xl text-blue-100 mb-8">Bergabung dengan ribuan guru yang sudah menggunakan AGSA</p>
+                <button id="btn-final-cta" class="inline-flex items-center px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 rounded-2xl font-semibold text-lg transition-all shadow-xl hover:scale-105">
+                    <svg class="w-6 h-6 mr-2" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    Mulai Gratis Sekarang
+                </button>
+            </div>
+        </section>
     </main>
-</div>
 
-<!-- MODALS -->
-<div id="modal-login" class="modal-overlay">
-    <div class="modal-content max-w-md text-center">
-        <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6">📚</div>
-        <h2 class="text-2xl font-bold mb-2">Selamat Datang!</h2>
-        <p class="text-slate-600 mb-8">Masuk dengan akun Google</p>
-        <button onclick="AuthSystem.loginWithGoogle()" class="btn w-full bg-white border-2 border-slate-200 hover:border-primary-500 text-slate-700 mb-4">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5"> Masuk dengan Google
-        </button>
-        <p class="text-xs text-slate-500">Hanya @gmail.com</p>
-        <button onclick="UISystem.closeModal('modal-login')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
-    </div>
-</div>
-
-<div id="modal-upgrade" class="modal-overlay">
-    <div class="modal-content max-w-md text-center">
-        <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 animate-float">👑</div>
-        <h2 class="text-2xl font-bold mb-2">Fitur PRO</h2>
-        <p class="text-slate-600 mb-8">Upgrade untuk akses penuh!</p>
-        <a id="btn-wa-upgrade" href="#" target="_blank" class="btn btn-success w-full mb-4">💬 Hubungi WhatsApp</a>
-        <button onclick="UISystem.closeModal('modal-upgrade')" class="text-slate-500">Nanti saja</button>
-    </div>
-</div>
-
-<div id="modal-ai" class="modal-overlay">
-    <div class="modal-content modal-lg">
-        <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center text-2xl">🤖</div>
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">A</span>
+                        </div>
+                        <span class="text-white font-bold text-xl">AGSA</span>
+                    </div>
+                    <p class="text-sm">Admin Guru Super App - Aplikasi administrasi guru dengan konsep Single Input Multi Output.</p>
+                </div>
+                
                 <div>
-                    <h2 class="text-xl font-bold">AI Assistant</h2>
-                    <p class="text-sm text-slate-500">Panduan & Generator Prompt</p>
+                    <h4 class="text-white font-semibold mb-4">Fitur</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">ATP</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Prota & Promes</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Modul Ajar</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Jurnal</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Bank Soal</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Dukungan</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Panduan Penggunaan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">FAQ</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Hubungi Kami</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-white font-semibold mb-4">Legal</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white transition-colors">Syarat & Ketentuan</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                    </ul>
                 </div>
             </div>
-            <button onclick="UISystem.closeModal('modal-ai')" class="text-slate-400 hover:text-slate-600 text-2xl">✕</button>
-        </div>
-        
-        <div class="mb-6 flex bg-slate-100 rounded-xl p-1">
-            <button onclick="AISystem.switchTab('guide')" class="ai-tab flex-1 py-3 rounded-lg font-semibold bg-white text-primary-600 shadow" data-tab="guide">📖 Panduan</button>
-            <button onclick="AISystem.switchTab('prompt')" class="ai-tab flex-1 py-3 rounded-lg font-semibold text-slate-500" data-tab="prompt">✨ Generator Prompt</button>
-        </div>
-        
-        <div id="ai-tab-guide" class="ai-tab-content space-y-4">
-            <div class="card card-flat p-5 border-l-4 border-l-primary-500">
-                <h4 class="font-bold mb-2">🚀 Cara Memulai</h4>
-                <ol class="list-decimal pl-5 text-sm space-y-1">
-                    <li>Lengkapi Profil Guru & Sekolah</li>
-                    <li>Input Data Siswa (format: nama;L/P;kelas)</li>
-                    <li>Muat data Kurikulum</li>
-                    <li>Atur Jadwal Mengajar (Multi-Kelas)</li>
-                    <li>Generate Dokumen per Kelas</li>
-                </ol>
-            </div>
-            <div class="card card-flat p-5 border-l-4 border-l-amber-500">
-                <h4 class="font-bold mb-2">📅 Multi-Kelas & Promes</h4>
-                <p class="text-sm">Setiap jadwal akan generate dokumen terpisah per kelas. Promes menampilkan hari libur yang bertepatan dengan hari mengajar.</p>
-            </div>
-            <div class="card card-flat p-5 border-l-4 border-l-green-500">
-                <h4 class="font-bold mb-2">🕌 RTL Arabic Support</h4>
-                <p class="text-sm">Teks Arab otomatis diformat RTL. Gunakan untuk mata pelajaran PAI/Bahasa Arab.</p>
-            </div>
-        </div>
-        
-        <div id="ai-tab-prompt" class="ai-tab-content hidden space-y-4">
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Jenis Dokumen</label>
-                    <select id="prompt-type" class="input-field" onchange="AISystem.updatePrompt()">
-                        <option value="soal-pg">Soal Pilihan Ganda</option>
-                        <option value="soal-essay">Soal Essay</option>
-                        <option value="soal-campuran">Soal Campuran</option>
-                        <option value="materi">Ringkasan Materi</option>
-                        <option value="materi-arab">Materi PAI (Arabic)</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Jumlah</label>
-                    <input type="number" id="prompt-count" class="input-field" value="10" min="1" max="50" onchange="AISystem.updatePrompt()">
+            
+            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between">
+                <p class="text-sm">&copy; 2025 AGSA. Hak cipta dilindungi.</p>
+                <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                    <span class="text-sm">Kurikulum Merdeka</span>
+                    <span class="w-1 h-1 bg-gray-600 rounded-full"></span>
+                    <span class="text-sm">8 Dimensi Profil Lulusan</span>
                 </div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold mb-2">Tujuan Pembelajaran</label>
-                <select id="prompt-tp" class="input-field" onchange="AISystem.updatePrompt()"><option value="">-- Pilih TP --</option></select>
-            </div>
-            <div>
-                <label class="block text-sm font-semibold mb-2">Prompt</label>
-                <textarea id="prompt-result" class="input-field h-48 font-mono text-sm" readonly></textarea>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="AISystem.copyPrompt()" class="btn btn-primary flex-1">📋 Copy</button>
-                <button onclick="window.open('https://chat.openai.com','_blank')" class="btn btn-secondary flex-1">🚀 ChatGPT</button>
-            </div>
         </div>
-    </div>
-</div>
+    </footer>
 
-<div id="loading-overlay" class="fixed inset-0 bg-white/90 backdrop-blur z-[9999] flex items-center justify-center hidden">
-    <div class="text-center">
-        <div class="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-slate-600 font-medium" id="loading-text">Memuat...</p>
-    </div>
-</div>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
-<div id="toast" class="fixed bottom-6 right-6 z-[9999] hidden">
-    <div class="bg-slate-800 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-fade-in">
-        <span id="toast-icon">✓</span>
-        <span id="toast-message">Berhasil</span>
-    </div>
-</div>
+    <!-- App Scripts -->
+    <script type="module">
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDe4ie2wSPEpNbAgWP-q03vTuHyxc9Jj3E",
+            authDomain: "agsa-e5b08.firebaseapp.com",
+            projectId: "agsa-e5b08",
+            storageBucket: "agsa-e5b08.firebasestorage.app",
+            messagingSenderId: "916052746331",
+            appId: "1:916052746331:web:357cbadbfd8658f1689f7e",
+        };
 
-<script>
-// ==================== FIREBASE CONFIG ====================
-const firebaseConfig = {
-    apiKey: "AIzaSyDe4ie2wSPEpNbAgWP-q03vTuHyxc9Jj3E",
-    authDomain: "agsa-e5b08.firebaseapp.com",
-    projectId: "agsa-e5b08",
-    storageBucket: "agsa-e5b08.firebasestorage.app",
-    messagingSenderId: "916052746331",
-    appId: "1:916052746331:web:357cbadbfd8658f1689f7e"
-};
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loginButtons = document.querySelectorAll('#btn-login, #btn-cta-login, #btn-free, #btn-final-cta');
+        const premiumBtn = document.getElementById('btn-premium');
+        const schoolPlanBtn = document.getElementById('btn-school-plan');
 
-// ==================== CONSTANTS ====================
-const CP_LINKS = {
-    "SD": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMR0Vbb2xSEbDOQ708qzRPyGG9I0Vp7RijYHp0NTpjUL7w08EMrVwYy9euEyvyq1Y_XaJBcB668dVi/pub?gid=1925091593&single=true&output=csv",
-    "SMP": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMR0Vbb2xSEbDOQ708qzRPyGG9I0Vp7RijYHp0NTpjUL7w08EMrVwYy9euEyvyq1Y_XaJBcB668dVi/pub?gid=1962203786&single=true&output=csv",
-    "SMA": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMR0Vbb2xSEbDOQ708qzRPyGG9I0Vp7RijYHp0NTpjUL7w08EMrVwYy9euEyvyq1Y_XaJBcB668dVi/pub?gid=260922290&single=true&output=csv"
-};
+        // Hide loading on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                loadingOverlay.classList.add('hidden');
+            }, 500);
+        });
 
-const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const BULAN_SHORT = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Ags","Sep","Okt","Nov","Des"];
-const HARI = ["Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"];
-const SUPER_ADMIN_EMAIL = "afifaro@gmail.com";
-
-const DEFAULT_HOLIDAYS = `2025-01-01 = Tahun Baru Masehi
-2025-01-29 = Tahun Baru Imlek
-2025-03-29 = Hari Raya Nyepi
-2025-03-31 = Idul Fitri 1446 H
-2025-04-01 = Idul Fitri 1446 H
-2025-04-18 = Wafat Isa Almasih
-2025-05-01 = Hari Buruh
-2025-05-12 = Hari Raya Waisak
-2025-05-29 = Kenaikan Isa Almasih
-2025-06-01 = Hari Lahir Pancasila
-2025-06-07 = Idul Adha 1446 H
-2025-06-27 = Tahun Baru Islam 1447 H
-2025-08-17 = HUT Kemerdekaan RI
-2025-09-05 = Maulid Nabi Muhammad SAW
-2025-12-25 = Hari Raya Natal`;
-
-// ==================== STATE ====================
-const AppState = {
-    currentUser: null,
-    userProfile: null,
-    schoolProfile: null,
-    students: [],
-    curriculum: {},
-    faseMap: {},
-    calendarEvents: {},
-    eventList: [],
-    schedules: [],
-    selectedMapel: '',
-    selectedKelas: '',
-    selectedSemester: '',
-    selectedElemen: '',
-    isPro: false,
-    isSuperAdmin: false,
-    settings: { waNumber: '6281234567890', premiumNPSN: [], paiNPSN: [], premiumUsers: [] },
-    calendarSettings: { masukGanjil: '', raporGanjil: '', masukGenap: '', raporGenap: '', customHolidays: DEFAULT_HOLIDAYS }
-};
-
-// ==================== UTILITY FUNCTIONS ====================
-const Utils = {
-    // Detect Arabic text
-    hasArabic(text) {
-        return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
-    },
-    
-    // Format text with RTL support for Arabic
-    formatWithRTL(text) {
-        if (!text) return '';
-        if (this.hasArabic(text)) {
-            // Wrap Arabic portions in RTL span
-            return text.replace(/([\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\s\u064B-\u0652]+)/g, 
-                '<span class="arabic-text" dir="rtl">$1</span>');
-        }
-        return text;
-    },
-    
-    // Parse CSV row
-    parseCSVRow(row) {
-        const cols = [];
-        const regex = /("([^"]*)"|[^,]+)(?=,|$)/g;
-        let match;
-        while ((match = regex.exec(row)) !== null) {
-            cols.push(match[2] !== undefined ? match[2] : match[1]);
-        }
-        return cols;
-    },
-    
-    // Format date Indonesian
-    formatDate(dateStr) {
-        if (!dateStr) return '';
-        const [y, m, d] = dateStr.split('-');
-        return `${parseInt(d)} ${BULAN[parseInt(m) - 1]} ${y}`;
-    },
-    
-    // Get date string
-    getDateStr(date) {
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        return `${y}-${m}-${d}`;
-    }
-};
-
-// ==================== AUTH SYSTEM ====================
-const AuthSystem = {
-    init() {
+        // Check auth state
         auth.onAuthStateChanged(async (user) => {
             if (user) {
-                if (!user.email.endsWith('@gmail.com')) {
-                    UISystem.showToast('Hanya email Gmail yang diizinkan', 'error');
-                    await auth.signOut();
-                    return;
-                }
-                AppState.currentUser = user;
-                AppState.isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
-                await this.loadUserProfile();
-                UISystem.showApp();
-            } else {
-                UISystem.showLanding();
+                // User is signed in, redirect to app
+                window.location.href = 'app.html';
             }
-            UISystem.hideLoading();
         });
-    },
 
-    async loginWithGoogle() {
-        try {
-            UISystem.showLoading('Memproses login...');
-            const provider = new firebase.auth.GoogleAuthProvider();
-            await auth.signInWithPopup(provider);
-            UISystem.closeModal('modal-login');
-        } catch (error) {
-            UISystem.showToast('Gagal login: ' + error.message, 'error');
-            UISystem.hideLoading();
-        }
-    },
-
-    async loadUserProfile() {
-        try {
-            const doc = await db.collection('users').doc(AppState.currentUser.uid).get();
-            if (doc.exists) {
-                AppState.userProfile = doc.data();
-                if (AppState.userProfile.schedules) AppState.schedules = AppState.userProfile.schedules;
-            } else {
-                AppState.userProfile = {
-                    email: AppState.currentUser.email,
-                    name: AppState.currentUser.displayName || '',
-                    tipeGuru: 'mapel',
-                    rombel: 'A',
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                await db.collection('users').doc(AppState.currentUser.uid).set(AppState.userProfile);
-            }
-            await SubscriptionSystem.checkSubscription();
-            if (AppState.userProfile.npsn) await SchoolSystem.loadSchool(AppState.userProfile.npsn);
-            await SuperAdminSystem.loadSettings();
-        } catch (error) {
-            console.error('Load profile error:', error);
-        }
-    },
-
-    async logout() {
-        await auth.signOut();
-        location.reload();
-    },
-
-    showLoginModal() { UISystem.openModal('modal-login'); }
-};
-
-// ==================== PROFILE & SCHOOL SYSTEM ====================
-const ProfileSystem = {
-    async saveProfile(data) {
-        try {
-            await db.collection('users').doc(AppState.currentUser.uid).update(data);
-            AppState.userProfile = { ...AppState.userProfile, ...data };
-            UISystem.showToast('Profil berhasil disimpan');
-            return true;
-        } catch (error) {
-            UISystem.showToast('Gagal menyimpan', 'error');
-            return false;
-        }
-    }
-};
-
-const SchoolSystem = {
-    async loadSchool(npsn) {
-        try {
-            const doc = await db.collection('schools').doc(npsn).get();
-            if (doc.exists) AppState.schoolProfile = doc.data();
-        } catch (error) {}
-    },
-    async saveSchool(data) {
-        try {
-            await db.collection('schools').doc(data.npsn).set(data, { merge: true });
-            AppState.schoolProfile = data;
-            await ProfileSystem.saveProfile({ npsn: data.npsn });
-            UISystem.showToast('Data sekolah disimpan');
-            return true;
-        } catch (error) {
-            UISystem.showToast('Gagal menyimpan', 'error');
-            return false;
-        }
-    }
-};
-
-// ==================== CURRICULUM SYSTEM ====================
-const CurriculumSystem = {
-    async fetchFromCloud(jenjang) {
-        try {
-            UISystem.showLoading('Mengunduh kurikulum...');
-            let response;
+        // Google Sign In
+        async function signInWithGoogle() {
             try {
-                response = await fetch(CP_LINKS[jenjang]);
-            } catch {
-                response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(CP_LINKS[jenjang])}`);
-            }
-            this.parseCSV(await response.text());
-            UISystem.showToast(`Data ${jenjang} berhasil dimuat`);
-        } catch (error) {
-            UISystem.showToast('Gagal mengunduh', 'error');
-        } finally {
-            UISystem.hideLoading();
-        }
-    },
-
-    parseCSV(csvText) {
-        const lines = csvText.split('\n');
-        AppState.curriculum = {};
-        AppState.faseMap = {};
-        let count = 0;
-
-        for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].trim();
-            if (!row) continue;
-            const cols = Utils.parseCSVRow(row);
-            if (cols.length < 5) continue;
-
-            const [mapel, fase, kelas, semester, elemen, cp, tp] = cols.map(c => (c || '').trim());
-            if (fase && kelas) AppState.faseMap[kelas] = fase;
-            
-            if (!AppState.curriculum[mapel]) AppState.curriculum[mapel] = {};
-            if (!AppState.curriculum[mapel][kelas]) AppState.curriculum[mapel][kelas] = {};
-            if (!AppState.curriculum[mapel][kelas][semester]) AppState.curriculum[mapel][kelas][semester] = {};
-            if (!AppState.curriculum[mapel][kelas][semester][elemen]) {
-                AppState.curriculum[mapel][kelas][semester][elemen] = { cp: cp || '', tps: [] };
-            }
-            AppState.curriculum[mapel][kelas][semester][elemen].tps.push({ tp: tp || cp || '' });
-            count++;
-        }
-        document.dispatchEvent(new CustomEvent('curriculumLoaded'));
-    },
-
-    getMapels() { return Object.keys(AppState.curriculum); },
-    getKelas(mapel) {
-        if (!AppState.curriculum[mapel]) return [];
-        return Object.keys(AppState.curriculum[mapel]).sort((a, b) => (parseInt(a.replace(/\D/g, '')) || 0) - (parseInt(b.replace(/\D/g, '')) || 0));
-    },
-    getSemesters(mapel, kelas) { return Object.keys(AppState.curriculum[mapel]?.[kelas] || {}); },
-    getElemen(mapel, kelas, semester) { return Object.keys(AppState.curriculum[mapel]?.[kelas]?.[semester] || {}); },
-    getTP(mapel, kelas, semester, elemen) { return AppState.curriculum[mapel]?.[kelas]?.[semester]?.[elemen] || null; },
-    getAllTP(mapel, kelas, semester) {
-        const result = [];
-        const data = AppState.curriculum[mapel]?.[kelas]?.[semester];
-        if (!data) return result;
-        Object.keys(data).forEach(elemen => {
-            data[elemen].tps.forEach(tp => result.push({ elemen, ...tp, cp: data[elemen].cp }));
-        });
-        return result;
-    }
-};
-
-// ==================== CALENDAR SYSTEM ====================
-const CalendarSystem = {
-    init() {
-        const year = new Date().getFullYear();
-        AppState.calendarSettings = {
-            masukGanjil: `${year}-07-14`,
-            raporGanjil: `${year}-12-20`,
-            masukGenap: `${year + 1}-01-06`,
-            raporGenap: `${year + 1}-06-21`,
-            customHolidays: DEFAULT_HOLIDAYS
-        };
-    },
-
-    generateCalendar() {
-        AppState.calendarEvents = {};
-        AppState.eventList = [];
-        const cs = AppState.calendarSettings;
-
-        const addEvent = (date, name) => {
-            if (!date) return;
-            AppState.calendarEvents[date] = name;
-            AppState.eventList.push({ date, name });
-        };
-
-        // Semester boundaries
-        [
-            { date: cs.masukGanjil, name: 'Awal Masuk Tahun Ajaran', fill: 'before', m: 6 },
-            { date: cs.raporGanjil, name: 'Pembagian Rapor Ganjil', fill: 'after', m: 11 },
-            { date: cs.masukGenap, name: 'Awal Masuk Semester Genap', fill: 'before', m: 0 },
-            { date: cs.raporGenap, name: 'Pembagian Rapor Kenaikan', fill: 'after', m: 5 }
-        ].forEach(b => {
-            if (!b.date) return;
-            addEvent(b.date, b.name);
-            const [y, m, d] = b.date.split('-').map(Number);
-            const lastDay = new Date(y, m, 0).getDate();
-            if (b.fill === 'before') {
-                for (let i = 1; i < d; i++) addEvent(`${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`, 'Libur Awal Semester');
-            } else {
-                for (let i = d + 1; i <= lastDay; i++) addEvent(`${y}-${String(m).padStart(2,'0')}-${String(i).padStart(2,'0')}`, 'Libur Akhir Semester');
-            }
-        });
-
-        // Custom holidays
-        cs.customHolidays.split('\n').forEach(line => {
-            const parts = line.split('=');
-            if (parts.length >= 2) addEvent(parts[0].trim(), parts[1].trim());
-        });
-
-        AppState.eventList.sort((a, b) => new Date(a.date) - new Date(b.date));
-    },
-
-    // Get teaching dates for specific day
-    getTeachingDates(hari, semester, year) {
-        const dates = [];
-        const startMonth = semester === 'Ganjil' ? 6 : 0;
-
-        for (let i = 0; i < 6; i++) {
-            let month = startMonth + i;
-            let yr = year;
-            if (month > 11) { month -= 12; yr++; }
-
-            const daysInMonth = new Date(yr, month + 1, 0).getDate();
-            for (let day = 1; day <= daysInMonth; day++) {
-                const date = new Date(yr, month, day);
-                if (date.getDay() === parseInt(hari)) {
-                    const dateStr = Utils.getDateStr(date);
-                    dates.push({ 
-                        date: dateStr, 
-                        dateObj: date, 
-                        isHoliday: !!AppState.calendarEvents[dateStr],
-                        holidayName: AppState.calendarEvents[dateStr] || null
-                    });
-                }
-            }
-        }
-        return dates;
-    },
-
-    // Get holidays on teaching day for a specific week
-    getHolidayInWeek(year, month, week, hari) {
-        const firstDay = new Date(year, month, 1);
-        const startDate = (week - 1) * 7 + 1;
-        const endDate = Math.min(week * 7, new Date(year, month + 1, 0).getDate());
-        
-        for (let d = startDate; d <= endDate; d++) {
-            const date = new Date(year, month, d);
-            if (date.getDay() === parseInt(hari)) {
-                const dateStr = Utils.getDateStr(date);
-                if (AppState.calendarEvents[dateStr]) {
-                    return { date: d, name: AppState.calendarEvents[dateStr] };
-                }
-            }
-        }
-        return null;
-    }
-};
-
-// ==================== SUBSCRIPTION SYSTEM ====================
-const SubscriptionSystem = {
-    async checkSubscription() {
-        try {
-            const doc = await db.collection('settings').doc('global').get();
-            if (doc.exists) {
-                const settings = doc.data();
-                AppState.settings = { ...AppState.settings, ...settings };
-                const npsn = AppState.userProfile?.npsn;
-                const email = AppState.currentUser?.email;
-                if (npsn && settings.premiumNPSN?.includes(npsn)) AppState.isPro = true;
-                if (settings.premiumUsers?.includes(email)) AppState.isPro = true;
-            }
-            if (AppState.isSuperAdmin) AppState.isPro = true;
-            this.updateUI();
-        } catch (error) {}
-    },
-
-    updateUI() {
-        const badge = document.getElementById('user-badge');
-        if (badge) {
-            badge.className = AppState.isPro ? 'badge badge-pro text-[10px]' : 'badge badge-free text-[10px]';
-            badge.textContent = AppState.isPro ? 'PRO' : 'FREE';
-        }
-    },
-
-    checkAccess(feature) {
-        const free = ['kalender', 'doc-atp', 'dashboard', 'profil-guru', 'profil-sekolah', 'data-siswa', 'kurikulum', 'subscription'];
-        if (free.includes(feature) || AppState.isPro) return true;
-        this.showUpgradeModal();
-        return false;
-    },
-
-    showUpgradeModal() {
-        document.getElementById('btn-wa-upgrade').href = `https://wa.me/${AppState.settings.waNumber}?text=${encodeURIComponent('Halo, saya ingin upgrade ke PRO')}`;
-        UISystem.openModal('modal-upgrade');
-    }
-};
-
-// ==================== SUPER ADMIN SYSTEM ====================
-const SuperAdminSystem = {
-    async loadSettings() {
-        try {
-            const doc = await db.collection('settings').doc('global').get();
-            if (doc.exists) AppState.settings = { ...AppState.settings, ...doc.data() };
-        } catch (error) {}
-    },
-    async saveSettings(data) {
-        if (!AppState.isSuperAdmin) return false;
-        try {
-            await db.collection('settings').doc('global').set(data, { merge: true });
-            AppState.settings = { ...AppState.settings, ...data };
-            UISystem.showToast('Pengaturan disimpan');
-            return true;
-        } catch (error) {
-            UISystem.showToast('Gagal menyimpan', 'error');
-            return false;
-        }
-    },
-    async getAllSchools() {
-        try {
-            const snapshot = await db.collection('schools').get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) { return []; }
-    },
-    async getAllUsers() {
-        try {
-            const snapshot = await db.collection('users').get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (error) { return []; }
-    }
-};
-
-// ==================== DOCUMENT ENGINE ====================
-const DocumentEngine = {
-    getIdentity() {
-        const year = new Date().getFullYear();
-        return {
-            sekolah: AppState.schoolProfile?.nama || 'Nama Sekolah',
-            npsn: AppState.schoolProfile?.npsn || '',
-            kepsek: AppState.schoolProfile?.kepsek || 'Kepala Sekolah',
-            nipKepsek: AppState.schoolProfile?.nipKepsek || '',
-            guru: AppState.userProfile?.name || 'Nama Guru',
-            nipGuru: AppState.userProfile?.nip || '',
-            mapel: AppState.selectedMapel || '',
-            kelas: AppState.selectedKelas || '',
-            semester: AppState.selectedSemester || '',
-            fase: AppState.faseMap[AppState.selectedKelas] || '',
-            tahun: year,
-            tahunAjar: `${year}/${year + 1}`,
-            rombel: AppState.userProfile?.rombel || 'A',
-            tempat: AppState.schoolProfile?.kota || ''
-        };
-    },
-
-    generateSignature(identity, date = '..............................') {
-        return `
-            <div class="signature-area" contenteditable="true">
-                <div class="signature-box">
-                    <p>Mengetahui,</p><p>Kepala Sekolah</p>
-                    <p class="signature-name">${identity.kepsek}</p>
-                    <p>NIP. ${identity.nipKepsek}</p>
-                </div>
-                <div class="signature-box">
-                    <p>${identity.tempat}, ${date}</p><p>Guru Mata Pelajaran</p>
-                    <p class="signature-name">${identity.guru}</p>
-                    <p>NIP. ${identity.nipGuru}</p>
-                </div>
-            </div>
-        `;
-    }
-};
-
-// ==================== AI SYSTEM ====================
-const AISystem = {
-    switchTab(tabName) {
-        document.querySelectorAll('.ai-tab').forEach(tab => {
-            tab.classList.remove('bg-white', 'text-primary-600', 'shadow');
-            tab.classList.add('text-slate-500');
-        });
-        document.querySelectorAll('.ai-tab-content').forEach(c => c.classList.add('hidden'));
-        
-        const tab = document.querySelector(`.ai-tab[data-tab="${tabName}"]`);
-        const content = document.getElementById(`ai-tab-${tabName}`);
-        if (tab) { tab.classList.remove('text-slate-500'); tab.classList.add('bg-white', 'text-primary-600', 'shadow'); }
-        if (content) content.classList.remove('hidden');
-        if (tabName === 'prompt') this.populateTP();
-    },
-
-    populateTP() {
-        const select = document.getElementById('prompt-tp');
-        if (!select) return;
-        select.innerHTML = '<option value="">-- Pilih TP --</option>';
-        CurriculumSystem.getAllTP(AppState.selectedMapel, AppState.selectedKelas, AppState.selectedSemester).forEach((tp, i) => {
-            select.innerHTML += `<option value="${tp.tp}">${i + 1}. ${tp.tp.substring(0, 50)}...</option>`;
-        });
-        this.updatePrompt();
-    },
-
-    updatePrompt() {
-        const type = document.getElementById('prompt-type')?.value || 'soal-pg';
-        const count = document.getElementById('prompt-count')?.value || 10;
-        const tp = document.getElementById('prompt-tp')?.value || '[TP]';
-        const result = document.getElementById('prompt-result');
-        if (!result) return;
-
-        const mapel = AppState.selectedMapel || '[Mapel]';
-        const kelas = AppState.selectedKelas || '[Kelas]';
-
-        const prompts = {
-            'soal-pg': `Buatkan ${count} soal PILIHAN GANDA untuk:\n- Mapel: ${mapel}\n- Kelas: ${kelas}\n- TP: ${tp}\n\nFormat CSV:\nno,soal,opsi_a,opsi_b,opsi_c,opsi_d,kunci`,
-            'soal-essay': `Buatkan ${count} soal ESSAY untuk:\n- Mapel: ${mapel}\n- Kelas: ${kelas}\n- TP: ${tp}\n\nFormat CSV:\nno,soal,kunci_jawaban,skor`,
-            'soal-campuran': `Buatkan soal CAMPURAN (5 PG, 3 Isian, 2 Essay) untuk:\n- Mapel: ${mapel}\n- Kelas: ${kelas}\n- TP: ${tp}\n\nFormat CSV:\nno,tipe,soal,opsi_a,opsi_b,opsi_c,opsi_d,kunci`,
-            'materi': `Buatkan RINGKASAN MATERI untuk:\n- Mapel: ${mapel}\n- Kelas: ${kelas}\n- TP: ${tp}\n\nStruktur: Pendahuluan, Isi, Contoh, Rangkuman`,
-            'materi-arab': `Buatkan MATERI PAI dengan ayat Al-Quran/Hadits (teks Arab + terjemahan) untuk:\n- Kelas: ${kelas}\n- TP: ${tp}\n\nGunakan format: Ayat Arab, Transliterasi, Terjemahan, Penjelasan`
-        };
-        result.value = prompts[type] || '';
-    },
-
-    copyPrompt() {
-        const result = document.getElementById('prompt-result');
-        if (result?.value) { navigator.clipboard.writeText(result.value); UISystem.showToast('Prompt disalin!'); }
-    }
-};
-
-// ==================== UI SYSTEM ====================
-const UISystem = {
-    currentPage: 'dashboard',
-
-    showLanding() {
-        document.getElementById('landing-page').classList.remove('hidden');
-        document.getElementById('main-app').classList.add('hidden');
-    },
-
-    showApp() {
-        document.getElementById('landing-page').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('user-name').textContent = AppState.userProfile?.name || AppState.currentUser?.displayName || 'User';
-        document.getElementById('user-email').textContent = AppState.currentUser?.email || '';
-        document.getElementById('user-avatar').textContent = (AppState.userProfile?.name || 'U')[0].toUpperCase();
-        if (AppState.isSuperAdmin) document.getElementById('nav-superadmin').classList.remove('hidden');
-        this.navigateTo('dashboard');
-    },
-
-    navigateTo(page) {
-        const pro = ['doc-promes', 'doc-modul', 'doc-lkpd', 'doc-jurnal', 'doc-absensi', 'doc-kktp', 'bank-soal'];
-        if (pro.includes(page) && !SubscriptionSystem.checkAccess(page)) return;
-        this.currentPage = page;
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.page === page) item.classList.add('active');
-        });
-        this.renderPage(page);
-        if (window.innerWidth < 1024) this.toggleSidebar(false);
-    },
-
-    renderPage(page) {
-        const container = document.getElementById('page-container');
-        container.className = 'p-4 lg:p-8 max-w-7xl mx-auto animate-fade-in';
-        container.innerHTML = PageRenderer[page] ? PageRenderer[page]() : '<p>Halaman tidak ditemukan</p>';
-        PageScripts.init(page);
-    },
-
-    toggleSidebar(show = null) {
-        const sidebar = document.getElementById('app-sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (show === null) show = sidebar.classList.contains('-translate-x-full');
-        sidebar.classList.toggle('-translate-x-full', !show);
-        overlay.classList.toggle('hidden', !show);
-    },
-
-    openModal(id) { document.getElementById(id).style.display = 'flex'; },
-    closeModal(id) { document.getElementById(id).style.display = 'none'; },
-    showAIAssistant() { this.openModal('modal-ai'); AISystem.switchTab('guide'); },
-    showLoading(text = 'Memuat...') { document.getElementById('loading-text').textContent = text; document.getElementById('loading-overlay').classList.remove('hidden'); },
-    hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); },
-    showToast(msg, type = 'success') {
-        const toast = document.getElementById('toast');
-        document.getElementById('toast-icon').textContent = type === 'success' ? '✓' : '✗';
-        document.getElementById('toast-message').textContent = msg;
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.add('hidden'), 3000);
-    }
-};
-
-// ==================== PAGE RENDERER ====================
-const PageRenderer = {
-    dashboard() {
-        const identity = DocumentEngine.getIdentity();
-        return `
-            <div class="mb-8">
-                <h1 class="text-2xl lg:text-3xl font-bold">Selamat Datang! 👋</h1>
-                <p class="text-slate-600 mt-1">${identity.guru} • ${identity.sekolah}</p>
-            </div>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div class="stat-card"><p class="text-slate-500 text-sm">Mata Pelajaran</p><p class="text-2xl font-bold">${CurriculumSystem.getMapels().length}</p></div>
-                <div class="stat-card"><p class="text-slate-500 text-sm">Data Siswa</p><p class="text-2xl font-bold">${AppState.students.length}</p></div>
-                <div class="stat-card"><p class="text-slate-500 text-sm">Jadwal (Kelas)</p><p class="text-2xl font-bold">${AppState.schedules.length}</p></div>
-                <div class="stat-card"><p class="text-slate-500 text-sm">Status</p><p class="text-xl font-bold ${AppState.isPro ? 'text-amber-600' : 'text-green-600'}">${AppState.isPro ? 'PRO' : 'FREE'}</p></div>
-            </div>
-            <div class="card p-6">
-                <h3 class="font-bold mb-4">🚀 Quick Start</h3>
-                <div class="grid md:grid-cols-5 gap-3">
-                    ${['kurikulum|📚|Kurikulum', 'profil-sekolah|🏫|Sekolah', 'data-siswa|👥|Siswa', 'kalender|📅|Jadwal', 'doc-atp|📋|Dokumen'].map(item => {
-                        const [page, icon, label] = item.split('|');
-                        return `<div onclick="UISystem.navigateTo('${page}')" class="p-4 bg-slate-50 rounded-xl text-center cursor-pointer hover:bg-primary-50 transition"><span class="text-2xl">${icon}</span><p class="text-sm font-medium mt-2">${label}</p></div>`;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    },
-
-    profilGuru() {
-        const p = AppState.userProfile || {};
-        return `
-            <div class="max-w-2xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">👤 Profil Guru</h1>
-                <div class="card p-6">
-                    <form id="form-profil-guru" class="space-y-5">
-                        <div><label class="block text-sm font-semibold mb-2">Nama Lengkap</label><input type="text" id="guru-nama" class="input-field" value="${p.name || ''}"></div>
-                        <div><label class="block text-sm font-semibold mb-2">NIP</label><input type="text" id="guru-nip" class="input-field" value="${p.nip || ''}"></div>
-                        <div><label class="block text-sm font-semibold mb-2">Email</label><input type="email" class="input-field bg-slate-50" value="${p.email || ''}" readonly></div>
-                        <div><label class="block text-sm font-semibold mb-2">Tipe Guru</label>
-                            <select id="guru-tipe" class="input-field">
-                                <option value="mapel" ${p.tipeGuru === 'mapel' ? 'selected' : ''}>Guru Mata Pelajaran (1 mapel, banyak kelas)</option>
-                                <option value="kelas" ${p.tipeGuru === 'kelas' ? 'selected' : ''}>Guru Kelas (banyak mapel, 1 kelas)</option>
-                            </select>
-                        </div>
-                        <div><label class="block text-sm font-semibold mb-2">Rombel Default</label><input type="text" id="guru-rombel" class="input-field" value="${p.rombel || 'A'}"></div>
-                        <button type="submit" class="btn btn-primary w-full">💾 Simpan Profil</button>
-                    </form>
-                </div>
-            </div>
-        `;
-    },
-
-    profilSekolah() {
-        const s = AppState.schoolProfile || {};
-        return `
-            <div class="max-w-2xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">🏫 Profil Sekolah</h1>
-                <div class="card p-6">
-                    <form id="form-profil-sekolah" class="space-y-5">
-                        <div><label class="block text-sm font-semibold mb-2">NPSN *</label><input type="text" id="sekolah-npsn" class="input-field" value="${s.npsn || ''}" required></div>
-                        <div><label class="block text-sm font-semibold mb-2">Nama Sekolah</label><input type="text" id="sekolah-nama" class="input-field" value="${s.nama || ''}"></div>
-                        <div><label class="block text-sm font-semibold mb-2">Alamat</label><textarea id="sekolah-alamat" class="input-field" rows="2">${s.alamat || ''}</textarea></div>
-                        <div><label class="block text-sm font-semibold mb-2">Kota</label><input type="text" id="sekolah-kota" class="input-field" value="${s.kota || ''}"></div>
-                        <div><label class="block text-sm font-semibold mb-2">Kepala Sekolah</label><input type="text" id="sekolah-kepsek" class="input-field" value="${s.kepsek || ''}"></div>
-                        <div><label class="block text-sm font-semibold mb-2">NIP Kepsek</label><input type="text" id="sekolah-nip-kepsek" class="input-field" value="${s.nipKepsek || ''}"></div>
-                        <button type="submit" class="btn btn-primary w-full">💾 Simpan</button>
-                    </form>
-                </div>
-            </div>
-        `;
-    },
-
-    dataSiswa() {
-        return `
-            <div class="max-w-4xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">👥 Data Siswa</h1>
-                <div class="card p-6 mb-6">
-                    <h3 class="font-bold mb-3">📋 Input Data</h3>
-                    <p class="text-sm text-slate-600 mb-4">Format: <code class="bg-slate-100 px-2 py-1 rounded">nama;L/P;kelas</code></p>
-                    <textarea id="input-siswa" class="input-field h-48 font-mono text-sm" placeholder="Ahmad;L;7A&#10;Siti;P;7A"></textarea>
-                    <div class="flex gap-3 mt-4">
-                        <button onclick="PageScripts.saveSiswa()" class="btn btn-primary flex-1">💾 Simpan</button>
-                        <label class="btn btn-secondary cursor-pointer">📁 Import<input type="file" accept=".csv,.txt" class="hidden" onchange="PageScripts.importSiswaFile(this)"></label>
-                    </div>
-                </div>
-                <div class="card p-6">
-                    <h3 class="font-bold mb-4">📊 Daftar (${AppState.students.length})</h3>
-                    <table class="w-full text-sm">
-                        <thead><tr class="bg-slate-100"><th class="px-4 py-3 text-left">No</th><th class="px-4 py-3 text-left">Nama</th><th class="px-4 py-3 text-center">L/P</th><th class="px-4 py-3 text-center">Kelas</th></tr></thead>
-                        <tbody>
-                            ${AppState.students.length > 0 ? AppState.students.map((s, i) => `<tr class="border-b"><td class="px-4 py-3">${i+1}</td><td class="px-4 py-3">${s.nama || s}</td><td class="px-4 py-3 text-center">${s.jk || '-'}</td><td class="px-4 py-3 text-center">${s.kelas || '-'}</td></tr>`).join('') : '<tr><td colspan="4" class="py-8 text-center text-slate-400">Kosong</td></tr>'}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-    },
-
-    kurikulum() {
-        const mapels = CurriculumSystem.getMapels();
-        return `
-            <div class="max-w-4xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">📚 Kurikulum & Mapel</h1>
-                <div class="grid lg:grid-cols-2 gap-6 mb-6">
-                    <div class="card p-6">
-                        <h3 class="font-bold mb-4">📥 Muat Data</h3>
-                        <select id="select-jenjang" class="input-field mb-3"><option value="SD">SD/MI</option><option value="SMP">SMP/MTs</option><option value="SMA">SMA/SMK/MA</option></select>
-                        <button onclick="PageScripts.loadKurikulum()" class="btn btn-warning w-full mb-2">☁️ Load dari Cloud</button>
-                        <label class="btn btn-secondary w-full cursor-pointer block text-center">📁 Upload CSV<input type="file" accept=".csv" class="hidden" onchange="PageScripts.uploadCSV(this)"></label>
-                    </div>
-                    <div class="card p-6">
-                        <h3 class="font-bold mb-4">🎯 Pilih</h3>
-                        <select id="select-mapel" class="input-field mb-3" onchange="PageScripts.onMapelChange()"><option value="">-- Mapel --</option>${mapels.map(m => `<option value="${m}">${m}</option>`).join('')}</select>
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <select id="select-kelas" class="input-field" onchange="PageScripts.onKelasChange()"><option value="">Kelas</option></select>
-                            <select id="select-semester" class="input-field" onchange="PageScripts.onSemesterChange()"><option value="">Semester</option></select>
-                        </div>
-                        <select id="select-elemen" class="input-field" onchange="PageScripts.onElemenChange()"><option value="">-- Elemen --</option></select>
-                    </div>
-                </div>
-                <div class="card p-6"><h3 class="font-bold mb-4">📋 Preview TP</h3><div id="list-tp" class="space-y-3 max-h-96 overflow-y-auto"><p class="text-slate-400 italic text-center py-8">Pilih mapel, kelas, semester</p></div></div>
-            </div>
-        `;
-    },
-
-    kalender() {
-        const cs = AppState.calendarSettings;
-        return `
-            <div class="max-w-5xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold">📅 Kalender & Jadwal Multi-Kelas</h1>
-                    <button onclick="window.print()" class="btn btn-secondary no-print">🖨️ Cetak</button>
-                </div>
+                loadingOverlay.classList.remove('hidden');
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
                 
-                <div class="card p-6 mb-6 no-print">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold">📆 Jadwal Mengajar</h3>
-                        <button onclick="PageScripts.addSchedule()" class="btn btn-sm btn-primary">+ Tambah</button>
-                    </div>
-                    <p class="text-sm text-slate-600 mb-4">Setiap jadwal akan generate dokumen terpisah per kelas.</p>
-                    <div id="schedule-list" class="space-y-2">${AppState.schedules.length > 0 ? AppState.schedules.map((s, i) => PageScripts.renderScheduleRow(s, i)).join('') : '<p class="text-center py-8 text-slate-400">Belum ada jadwal</p>'}</div>
-                    <button onclick="PageScripts.saveSchedules()" class="btn btn-success w-full mt-4">💾 Simpan Jadwal</button>
-                </div>
+                const result = await auth.signInWithPopup(provider);
+                const user = result.user;
                 
-                <div class="card p-6 mb-6 no-print">
-                    <h3 class="font-bold mb-4">⚙️ Pengaturan Kalender</h3>
-                    <div class="grid md:grid-cols-4 gap-4 mb-4">
-                        <div><label class="text-xs font-semibold">Awal (Juli)</label><input type="date" id="cal-masuk-ganjil" class="input-field text-sm" value="${cs.masukGanjil}"></div>
-                        <div><label class="text-xs font-semibold">Rapor (Des)</label><input type="date" id="cal-rapor-ganjil" class="input-field text-sm" value="${cs.raporGanjil}"></div>
-                        <div><label class="text-xs font-semibold">Awal (Jan)</label><input type="date" id="cal-masuk-genap" class="input-field text-sm" value="${cs.masukGenap}"></div>
-                        <div><label class="text-xs font-semibold">Rapor (Jun)</label><input type="date" id="cal-rapor-genap" class="input-field text-sm" value="${cs.raporGenap}"></div>
-                    </div>
-                    <label class="text-xs font-semibold">Libur Kustom (YYYY-MM-DD = Nama)</label>
-                    <textarea id="cal-libur" class="input-field h-32 font-mono text-xs">${cs.customHolidays}</textarea>
-                    <button onclick="PageScripts.generateKalender()" class="btn btn-primary mt-4">🔄 Generate</button>
-                </div>
+                // Check if user exists in Firestore
+                const userDoc = await db.collection('users').doc(user.uid).get();
                 
-                <div id="output-kalender"></div>
-            </div>
-        `;
-    },
-
-    doc_atp() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">📋 ATP & Prota (Multi-Kelas)</h1><div class="flex gap-3"><select id="atp-mode" class="input-field w-auto" onchange="PageScripts.generateATP()"><option value="semester">1 Semester</option><option value="tahun">1 Tahun</option></select><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div></div><div id="output-atp"></div></div>`; },
-    doc_promes() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">📆 Promes (Multi-Kelas + Libur)</h1><div class="flex gap-3"><select id="promes-paper" class="input-field w-auto"><option value="a4">A4</option><option value="f4">F4</option></select><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div></div><div id="output-promes"></div></div>`; },
-    doc_modul() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">📖 Modul Ajar (RTL Support)</h1><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div><div id="output-modul"></div></div>`; },
-    doc_lkpd() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">📝 LKPD (RTL Support)</h1><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div><div id="output-lkpd"></div></div>`; },
-    doc_jurnal() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">📔 Jurnal (Multi-Kelas)</h1><div class="flex gap-3"><select id="jurnal-paper" class="input-field w-auto"><option value="a4">A4</option><option value="f4">F4</option></select><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div></div><div id="output-jurnal"></div></div>`; },
-    doc_absensi() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">✅ Absensi (Multi-Kelas)</h1><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div><div id="output-absensi"></div></div>`; },
-    doc_kktp() { return `<div><div class="flex justify-between mb-6 no-print"><h1 class="text-2xl font-bold">🎯 KKTP & Nilai (Multi-Kelas)</h1><button onclick="window.print()" class="btn btn-secondary">🖨️ Cetak</button></div><div id="output-kktp"></div></div>`; },
-    
-    'doc-atp': function() { return this.doc_atp(); },
-    'doc-promes': function() { return this.doc_promes(); },
-    'doc-modul': function() { return this.doc_modul(); },
-    'doc-lkpd': function() { return this.doc_lkpd(); },
-    'doc-jurnal': function() { return this.doc_jurnal(); },
-    'doc-absensi': function() { return this.doc_absensi(); },
-    'doc-kktp': function() { return this.doc_kktp(); },
-
-    'bank-soal'() {
-        return `
-            <div class="max-w-4xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">❓ Bank Soal (RTL Support)</h1>
-                <div class="grid lg:grid-cols-2 gap-6 mb-6">
-                    <div class="card p-6">
-                        <h3 class="font-bold mb-4">⚙️ Pengaturan</h3>
-                        <select id="soal-tp" class="input-field mb-3"><option value="">-- Pilih TP --</option></select>
-                        <div class="grid grid-cols-2 gap-3 mb-3">
-                            <select id="soal-tipe" class="input-field"><option value="pg">PG</option><option value="essay">Essay</option><option value="campuran">Campuran</option></select>
-                            <input type="number" id="soal-jumlah" class="input-field" value="10" min="1">
-                        </div>
-                        <button onclick="UISystem.showAIAssistant()" class="btn w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white">🤖 Generate AI</button>
-                    </div>
-                    <div class="card p-6">
-                        <h3 class="font-bold mb-4">📥 Import CSV</h3>
-                        <textarea id="input-soal-csv" class="input-field h-32 font-mono text-xs" placeholder="Paste CSV..."></textarea>
-                        <button onclick="PageScripts.importSoalCSV()" class="btn btn-primary w-full mt-3">📋 Import</button>
-                    </div>
-                </div>
-                <div class="card p-6"><h3 class="font-bold mb-4">📝 Daftar Soal</h3><div id="list-soal"><p class="text-slate-400 text-center py-8">Belum ada soal</p></div></div>
-            </div>
-        `;
-    },
-
-    subscription() {
-        return `
-            <div class="max-w-2xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">💎 Subscription</h1>
-                <div class="card p-6 mb-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div><h3 class="font-bold text-lg">Status</h3><p class="text-slate-500">${AppState.currentUser?.email}</p></div>
-                        <span class="badge ${AppState.isPro ? 'badge-pro' : 'badge-free'} text-base px-4 py-2">${AppState.isPro ? '👑 PRO' : 'FREE'}</span>
-                    </div>
-                    ${AppState.isPro ? '<div class="p-4 bg-green-50 rounded-xl border border-green-200"><p class="text-green-700">✅ Akses penuh ke semua fitur PRO!</p></div>' : `<div class="p-4 bg-amber-50 rounded-xl border border-amber-200 mb-4"><p class="text-amber-700">⚠️ Upgrade untuk fitur lengkap!</p></div><a href="https://wa.me/${AppState.settings.waNumber}" target="_blank" class="btn btn-success w-full">💬 WhatsApp</a>`}
-                </div>
-            </div>
-        `;
-    },
-
-    'super-admin'() {
-        if (!AppState.isSuperAdmin) return '<div class="card p-6"><p class="text-red-600">⛔ Akses ditolak</p></div>';
-        return `
-            <div class="max-w-4xl mx-auto">
-                <h1 class="text-2xl font-bold mb-6">👑 Super Admin</h1>
-                <div class="card p-6 mb-6">
-                    <h3 class="font-bold mb-4">⚙️ Pengaturan</h3>
-                    <div class="space-y-4">
-                        <div><label class="text-sm font-semibold">WhatsApp</label><input type="text" id="admin-wa" class="input-field" value="${AppState.settings.waNumber || ''}"></div>
-                        <div><label class="text-sm font-semibold">NPSN Premium (koma)</label><textarea id="admin-premium-npsn" class="input-field h-20 font-mono">${(AppState.settings.premiumNPSN || []).join(', ')}</textarea></div>
-                        <div><label class="text-sm font-semibold">Email Premium (per baris)</label><textarea id="admin-premium-users" class="input-field h-20 font-mono">${(AppState.settings.premiumUsers || []).join('\n')}</textarea></div>
-                        <button onclick="PageScripts.saveAdminSettings()" class="btn btn-primary w-full">💾 Simpan</button>
-                    </div>
-                </div>
-                <div class="card p-6"><h3 class="font-bold mb-4">📊 Statistik</h3><div id="admin-stats"><p class="text-slate-400">Memuat...</p></div></div>
-            </div>
-        `;
-    }
-};
-
-// ==================== PAGE SCRIPTS ====================
-const PageScripts = {
-    init(page) {
-        switch (page) {
-            case 'profil-guru':
-                document.getElementById('form-profil-guru')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    await ProfileSystem.saveProfile({
-                        name: document.getElementById('guru-nama').value,
-                        nip: document.getElementById('guru-nip').value,
-                        tipeGuru: document.getElementById('guru-tipe').value,
-                        rombel: document.getElementById('guru-rombel').value
-                    });
-                });
-                break;
-            case 'profil-sekolah':
-                document.getElementById('form-profil-sekolah')?.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    await SchoolSystem.saveSchool({
-                        npsn: document.getElementById('sekolah-npsn').value,
-                        nama: document.getElementById('sekolah-nama').value,
-                        alamat: document.getElementById('sekolah-alamat').value,
-                        kota: document.getElementById('sekolah-kota').value,
-                        kepsek: document.getElementById('sekolah-kepsek').value,
-                        nipKepsek: document.getElementById('sekolah-nip-kepsek').value
-                    });
-                });
-                break;
-            case 'data-siswa':
-                if (AppState.students.length > 0) {
-                    document.getElementById('input-siswa').value = AppState.students.map(s => `${s.nama || s};${s.jk || ''};${s.kelas || ''}`).join('\n');
-                }
-                break;
-            case 'kurikulum': this.updateKurikulumDropdowns(); break;
-            case 'kalender': CalendarSystem.init(); this.generateKalender(); break;
-            case 'doc-atp': this.generateATP(); break;
-            case 'doc-promes': this.generatePromes(); break;
-            case 'doc-modul': this.generateModul(); break;
-            case 'doc-lkpd': this.generateLKPD(); break;
-            case 'doc-jurnal': this.generateJurnal(); break;
-            case 'doc-absensi': this.generateAbsensi(); break;
-            case 'doc-kktp': this.generateKKTP(); break;
-            case 'bank-soal': this.populateSoalTP(); break;
-            case 'super-admin': this.loadAdminData(); break;
-        }
-    },
-
-    // ============ SISWA ============
-    saveSiswa() {
-        const lines = document.getElementById('input-siswa').value.split('\n').filter(l => l.trim());
-        AppState.students = lines.map(line => {
-            const parts = line.split(';').map(p => p.trim());
-            return { nama: parts[0] || '', jk: parts[1] || '', kelas: parts[2] || '' };
-        });
-        localStorage.setItem('agsa_students', JSON.stringify(AppState.students));
-        UISystem.showToast(`${AppState.students.length} siswa disimpan`);
-        UISystem.navigateTo('data-siswa');
-    },
-
-    importSiswaFile(input) {
-        if (!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { document.getElementById('input-siswa').value = e.target.result; UISystem.showToast('File dimuat'); };
-        reader.readAsText(input.files[0]);
-    },
-
-    // ============ KURIKULUM ============
-    loadKurikulum() { CurriculumSystem.fetchFromCloud(document.getElementById('select-jenjang').value); },
-    uploadCSV(input) {
-        if (!input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { CurriculumSystem.parseCSV(e.target.result); UISystem.showToast('CSV dimuat'); };
-        reader.readAsText(input.files[0]);
-    },
-
-    updateKurikulumDropdowns() {
-        const mapelSelect = document.getElementById('select-mapel');
-        if (!mapelSelect) return;
-        const mapels = CurriculumSystem.getMapels();
-        mapelSelect.innerHTML = '<option value="">-- Mapel --</option>' + mapels.map(m => `<option value="${m}">${m}</option>`).join('');
-    },
-
-    onMapelChange() {
-        AppState.selectedMapel = document.getElementById('select-mapel').value;
-        const kelasList = CurriculumSystem.getKelas(AppState.selectedMapel);
-        document.getElementById('select-kelas').innerHTML = '<option value="">Kelas</option>' + kelasList.map(k => `<option value="${k}">${k}</option>`).join('');
-        document.getElementById('select-semester').innerHTML = '<option value="">Semester</option>';
-        document.getElementById('select-elemen').innerHTML = '<option value="">-- Elemen --</option>';
-    },
-
-    onKelasChange() {
-        AppState.selectedKelas = document.getElementById('select-kelas').value;
-        const semesters = CurriculumSystem.getSemesters(AppState.selectedMapel, AppState.selectedKelas);
-        document.getElementById('select-semester').innerHTML = '<option value="">Semester</option>' + semesters.map(s => `<option value="${s}">${s}</option>`).join('');
-        document.getElementById('select-elemen').innerHTML = '<option value="">-- Elemen --</option>';
-    },
-
-    onSemesterChange() {
-        AppState.selectedSemester = document.getElementById('select-semester').value;
-        const elemens = CurriculumSystem.getElemen(AppState.selectedMapel, AppState.selectedKelas, AppState.selectedSemester);
-        document.getElementById('select-elemen').innerHTML = '<option value="">-- Semua --</option>' + elemens.map(e => `<option value="${e}">${e.substring(0, 50)}...</option>`).join('');
-        this.showTPPreview();
-    },
-
-    onElemenChange() { AppState.selectedElemen = document.getElementById('select-elemen').value; this.showTPPreview(); },
-
-    showTPPreview() {
-        const container = document.getElementById('list-tp');
-        if (!container) return;
-        const tps = CurriculumSystem.getAllTP(AppState.selectedMapel, AppState.selectedKelas, AppState.selectedSemester);
-        if (tps.length === 0) { container.innerHTML = '<p class="text-slate-400 italic text-center py-8">Pilih untuk melihat TP</p>'; return; }
-        container.innerHTML = tps.map((tp, i) => `
-            <div class="p-4 bg-slate-50 rounded-xl border">
-                <div class="flex gap-3">
-                    <span class="w-7 h-7 bg-primary-600 text-white rounded-lg flex items-center justify-center text-xs font-bold">${i + 1}</span>
-                    <div class="mixed-content">${Utils.formatWithRTL(tp.tp)}</div>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    // ============ JADWAL ============
-    renderScheduleRow(s, index) {
-        const mapels = CurriculumSystem.getMapels();
-        return `
-            <div class="schedule-row" data-index="${index}">
-                <select class="sch-hari">${HARI.map((h, i) => `<option value="${i}" ${s.hari == i ? 'selected' : ''}>${h}</option>`).join('')}</select>
-                <input type="text" class="sch-mapel" value="${s.mapel || ''}" placeholder="Mapel">
-                <input type="text" class="sch-kelas" value="${s.kelas || ''}" placeholder="Kelas">
-                <input type="text" class="sch-rombel" value="${s.rombel || 'A'}" placeholder="Rombel">
-                <input type="number" class="sch-jp" value="${s.jp || 2}" min="1" max="10" placeholder="JP">
-                <button onclick="PageScripts.removeSchedule(${index})" class="btn btn-sm btn-danger">✕</button>
-            </div>
-        `;
-    },
-
-    addSchedule() {
-        AppState.schedules.push({ hari: 1, mapel: AppState.selectedMapel || '', kelas: '', rombel: 'A', jp: 2 });
-        this.refreshScheduleList();
-    },
-
-    removeSchedule(index) { AppState.schedules.splice(index, 1); this.refreshScheduleList(); },
-
-    refreshScheduleList() {
-        const container = document.getElementById('schedule-list');
-        if (!container) return;
-        container.innerHTML = AppState.schedules.length > 0 
-            ? AppState.schedules.map((s, i) => this.renderScheduleRow(s, i)).join('') 
-            : '<p class="text-center py-8 text-slate-400">Belum ada jadwal</p>';
-    },
-
-    async saveSchedules() {
-        const rows = document.querySelectorAll('.schedule-row');
-        AppState.schedules = Array.from(rows).map(row => ({
-            hari: row.querySelector('.sch-hari')?.value || '1',
-            mapel: row.querySelector('.sch-mapel')?.value || '',
-            kelas: row.querySelector('.sch-kelas')?.value || '',
-            rombel: row.querySelector('.sch-rombel')?.value || 'A',
-            jp: parseInt(row.querySelector('.sch-jp')?.value) || 2
-        }));
-        await ProfileSystem.saveProfile({ schedules: AppState.schedules });
-        UISystem.showToast('Jadwal disimpan');
-    },
-
-    // ============ KALENDER ============
-    generateKalender() {
-        AppState.calendarSettings = {
-            masukGanjil: document.getElementById('cal-masuk-ganjil')?.value || AppState.calendarSettings.masukGanjil,
-            raporGanjil: document.getElementById('cal-rapor-ganjil')?.value || AppState.calendarSettings.raporGanjil,
-            masukGenap: document.getElementById('cal-masuk-genap')?.value || AppState.calendarSettings.masukGenap,
-            raporGenap: document.getElementById('cal-rapor-genap')?.value || AppState.calendarSettings.raporGenap,
-            customHolidays: document.getElementById('cal-libur')?.value || AppState.calendarSettings.customHolidays
-        };
-        CalendarSystem.generateCalendar();
-        
-        const identity = DocumentEngine.getIdentity();
-        const container = document.getElementById('output-kalender');
-        if (!container) return;
-
-        // Build schedule table for ALL schedules
-        let scheduleRows = AppState.schedules.length > 0 
-            ? AppState.schedules.map(s => `<tr><td class="text-center font-bold text-primary-700">${HARI[s.hari] || 'Senin'}</td><td class="text-center">Menyesuaikan</td><td class="font-semibold">${s.mapel || '-'}</td><td class="text-center">${s.kelas || '-'}/${s.rombel || 'A'}</td><td class="text-center font-bold">${s.jp || 2} JP</td></tr>`).join('') 
-            : '<tr><td colspan="5" class="text-center py-4 text-slate-400">Belum ada jadwal</td></tr>';
-
-        // Build event list
-        const eventRows = this.renderEventList();
-
-        container.innerHTML = `
-            <div class="paper-preview portrait">
-                <h1 class="text-center text-base font-bold mb-6 uppercase">KALENDER PENDIDIKAN & JADWAL PELAJARAN<br>TAHUN PELAJARAN ${identity.tahunAjar}</h1>
-                <table class="doc-table mb-6" style="width:auto;"><tr><td width="150"><strong>Sekolah</strong></td><td>: ${identity.sekolah}</td></tr><tr><td><strong>Guru</strong></td><td>: ${identity.guru}</td></tr></table>
-                <div class="font-bold bg-slate-100 p-2 border-l-4 border-primary-600 mb-3">A. JADWAL MENGAJAR (${AppState.schedules.length} KELAS)</div>
-                <table class="doc-table mb-6"><thead><tr><th>Hari</th><th>Waktu</th><th>Mapel</th><th>Kelas</th><th>JP</th></tr></thead><tbody>${scheduleRows}</tbody></table>
-                <div class="font-bold bg-slate-100 p-2 border-l-4 border-primary-600 mb-3">B. HARI LIBUR & AGENDA</div>
-                <table class="doc-table"><thead><tr><th width="30%">Tanggal</th><th>Keterangan</th></tr></thead><tbody>${eventRows}</tbody></table>
-                ${DocumentEngine.generateSignature(identity)}
-            </div>
-        `;
-    },
-
-    renderEventList() {
-        if (AppState.eventList.length === 0) return '<tr><td colspan="2" class="text-center py-4">Belum ada data</td></tr>';
-        const grouped = [];
-        let current = null;
-        AppState.eventList.forEach(ev => {
-            if (!current) current = { start: ev.date, end: ev.date, name: ev.name };
-            else if (current.name === ev.name) current.end = ev.date;
-            else { grouped.push(current); current = { start: ev.date, end: ev.date, name: ev.name }; }
-        });
-        if (current) grouped.push(current);
-        return grouped.slice(0, 30).map(g => {
-            const dateText = g.start === g.end ? Utils.formatDate(g.start) : `${Utils.formatDate(g.start)} s.d ${Utils.formatDate(g.end)}`;
-            const isLibur = g.name.toLowerCase().includes('libur');
-            return `<tr class="${isLibur ? 'bg-red-50' : ''}"><td class="font-semibold">${dateText}</td><td>${g.name}</td></tr>`;
-        }).join('');
-    },
-
-    // ============ ATP & PROTA - MULTI KELAS ============
-    generateATP() {
-        const container = document.getElementById('output-atp');
-        if (!container) return;
-
-        // Generate for ALL schedules (multi-kelas)
-        if (AppState.schedules.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Tambahkan jadwal di menu Kalender terlebih dahulu</p><button onclick="UISystem.navigateTo(\'kalender\')" class="btn btn-primary">Buka Kalender</button></div>';
-            return;
-        }
-
-        let html = '';
-        const mode = document.getElementById('atp-mode')?.value || 'semester';
-        const identity = DocumentEngine.getIdentity();
-
-        // Generate dokumen untuk setiap jadwal (kelas)
-        AppState.schedules.forEach((schedule, schIdx) => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const semester = AppState.selectedSemester || 'Ganjil';
-            const jp = schedule.jp || 2;
-
-            if (!mapel || !kelas) return;
-
-            let dataToRender = [];
-            if (mode === 'tahun') {
-                ['Ganjil', 'Genap'].forEach(smt => {
-                    const data = AppState.curriculum[mapel]?.[kelas]?.[smt];
-                    if (data) Object.keys(data).forEach(elemen => dataToRender.push({ semester: smt, elemen, data: data[elemen] }));
-                });
-            } else {
-                const data = AppState.curriculum[mapel]?.[kelas]?.[semester];
-                if (data) Object.keys(data).forEach(elemen => dataToRender.push({ semester, elemen, data: data[elemen] }));
-            }
-
-            if (dataToRender.length === 0) return;
-
-            // Build ATP rows
-            let atpRows = '';
-            let protaRows = '';
-            dataToRender.forEach((item, idx) => {
-                const tps = item.data.tps || [];
-                const totalJP = tps.length * jp;
-                tps.forEach((tp, tpIdx) => {
-                    atpRows += `<tr>`;
-                    if (tpIdx === 0) atpRows += `<td rowspan="${tps.length}" class="text-center align-middle">${idx + 1}</td><td rowspan="${tps.length}" class="align-middle bg-slate-50 p-2"><strong class="text-primary-800">${item.elemen}</strong><hr class="my-2"><span class="text-xs">${item.data.cp}</span></td>`;
-                    atpRows += `<td class="mixed-content">${Utils.formatWithRTL(tp.tp)}</td><td class="text-xs text-center">Beriman, Bernalar</td><td class="text-center font-semibold text-amber-600">Memahami</td>`;
-                    if (tpIdx === 0) atpRows += `<td rowspan="${tps.length}" class="text-center align-middle">${tps.length} Mgg<br>${totalJP} JP</td>`;
-                    atpRows += `</tr>`;
-
-                    protaRows += `<tr>`;
-                    if (tpIdx === 0) protaRows += `<td rowspan="${tps.length}" class="text-center align-middle font-bold">${item.semester}</td><td rowspan="${tps.length}" class="align-middle bg-slate-50 p-2"><strong>${item.elemen}</strong></td>`;
-                    protaRows += `<td class="mixed-content">${Utils.formatWithRTL(tp.tp)}</td>`;
-                    if (tpIdx === 0) protaRows += `<td rowspan="${tps.length}" class="text-center align-middle font-bold">${totalJP} JP</td>`;
-                    protaRows += `</tr>`;
-                });
-            });
-
-            const fase = AppState.faseMap[kelas] || '';
-
-            html += `
-                <div class="paper-preview landscape" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">ALUR TUJUAN PEMBELAJARAN (ATP)<br>KELAS ${kelas} - ${mapel}</h1>
-                    <div class="flex justify-between mb-4 text-sm">
-                        <table><tr><td width="150"><strong>SEKOLAH</strong></td><td>: ${identity.sekolah}</td></tr><tr><td><strong>MAPEL</strong></td><td>: <span class="text-primary-700 font-bold">${mapel}</span></td></tr><tr><td><strong>FASE</strong></td><td>: ${fase}</td></tr></table>
-                        <table><tr><td width="100"><strong>KELAS</strong></td><td>: ${kelas}</td></tr><tr><td><strong>SEMESTER</strong></td><td>: ${mode === 'tahun' ? 'Ganjil & Genap' : semester}</td></tr></table>
-                    </div>
-                    <table class="doc-table"><thead><tr><th width="4%">NO</th><th width="22%">ELEMEN & CP</th><th width="26%">TUJUAN PEMBELAJARAN</th><th width="14%">PROFIL</th><th width="10%">KOMPETENSI</th><th width="8%">WAKTU</th></tr></thead><tbody>${atpRows}</tbody></table>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-                <div class="paper-preview portrait" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">PROGRAM TAHUNAN (PROTA)<br>${mapel} - KELAS ${kelas}</h1>
-                    <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Satuan Pendidikan</strong></td><td>: ${identity.sekolah}</td></tr><tr><td><strong>Fase / Kelas</strong></td><td>: ${fase} / ${kelas}</td></tr></table>
-                    <table class="doc-table"><thead><tr><th width="10%">Smt</th><th width="30%">Elemen & CP</th><th width="50%">Tujuan Pembelajaran</th><th width="10%">JP</th></tr></thead><tbody>${protaRows}</tbody></table>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Tidak ada data</p></div>';
-    },
-
-    // ============ PROMES - MULTI KELAS + LIBUR ============
-    generatePromes() {
-        const container = document.getElementById('output-promes');
-        if (!container) return;
-
-        if (AppState.schedules.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Tambahkan jadwal di menu Kalender terlebih dahulu</p><button onclick="UISystem.navigateTo(\'kalender\')" class="btn btn-primary">Buka Kalender</button></div>';
-            return;
-        }
-
-        CalendarSystem.generateCalendar();
-        const identity = DocumentEngine.getIdentity();
-        const paper = document.getElementById('promes-paper')?.value || 'a4';
-        let html = '';
-
-        // Generate PROMES untuk SETIAP jadwal (kelas)
-        AppState.schedules.forEach((schedule, schIdx) => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const semester = AppState.selectedSemester || 'Ganjil';
-            const hari = parseInt(schedule.hari) || 1;
-            const jp = schedule.jp || 2;
-            const rombel = schedule.rombel || 'A';
-
-            if (!mapel || !kelas) return;
-
-            const year = identity.tahun;
-            const startMonth = semester === 'Ganjil' ? 6 : 0;
-            
-            // Get months
-            const months = [];
-            for (let i = 0; i < 6; i++) {
-                let m = startMonth + i;
-                let y = year;
-                if (m > 11) { m -= 12; y++; }
-                months.push({ month: m, year: y, name: BULAN_SHORT[m] });
-            }
-
-            // Get all TPs
-            const allTP = CurriculumSystem.getAllTP(mapel, kelas, semester);
-            if (allTP.length === 0) return;
-
-            // Build header
-            let headerRow1 = '<th rowspan="2" width="25%">Tujuan Pembelajaran</th><th rowspan="2" width="4%">JP</th>';
-            let headerRow2 = '';
-            months.forEach(mo => {
-                headerRow1 += `<th colspan="5">${mo.name}</th>`;
-                for (let w = 1; w <= 5; w++) headerRow2 += `<th class="promes-cell">${w}</th>`;
-            });
-
-            // Get teaching dates for this schedule's day
-            const teachingDates = CalendarSystem.getTeachingDates(hari, semester, year);
-            
-            // Build body
-            let bodyRows = '';
-            let tpIdx = 0;
-            
-            allTP.forEach((tp, idx) => {
-                bodyRows += '<tr>';
-                bodyRows += `<td class="text-[8pt] mixed-content">${Utils.formatWithRTL(tp.tp)}</td>`;
-                bodyRows += `<td class="text-center font-bold">${jp}</td>`;
-
-                // For each month and week
-                for (let m = 0; m < 6; m++) {
-                    const mo = months[m];
-                    for (let w = 1; w <= 5; w++) {
-                        let cellContent = '';
-                        let cellClass = 'promes-cell';
-                        
-                        // Check if this TP's teaching date falls in this week
-                        const tpDate = teachingDates[tpIdx];
-                        if (tpDate && tpDate.dateObj.getMonth() === mo.month) {
-                            const tpDay = tpDate.dateObj.getDate();
-                            const weekNum = Math.ceil(tpDay / 7);
-                            
-                            if (weekNum === w) {
-                                if (tpDate.isHoliday) {
-                                    // HARI LIBUR yang bertepatan dengan hari mengajar
-                                    cellClass = 'promes-cell promes-holiday-horizontal';
-                                    const shortName = tpDate.holidayName.length > 12 ? tpDate.holidayName.substring(0, 10) + '..' : tpDate.holidayName;
-                                    cellContent = shortName;
-                                } else {
-                                    // Hari aktif mengajar
-                                    cellClass = 'promes-cell promes-active';
-                                    cellContent = tpDay;
-                                }
-                            }
+                if (!userDoc.exists) {
+                    // Create new user document
+                    await db.collection('users').doc(user.uid).set({
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        role: user.email === 'afifaro@gmail.com' ? 'superadmin' : 'user',
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                        subscription: {
+                            type: 'free',
+                            plan: null,
+                            expiresAt: null,
+                            npsn: null,
+                            activatedAt: null
                         }
-                        
-                        // Check for other holidays in this week on the teaching day
-                        if (!cellContent) {
-                            const holiday = CalendarSystem.getHolidayInWeek(mo.year, mo.month, w, hari);
-                            if (holiday && idx === 0) {
-                                // Only show once per column (first row)
-                                cellClass = 'promes-cell promes-holiday';
-                                const shortName = holiday.name.length > 15 ? holiday.name.substring(0, 12) + '..' : holiday.name;
-                                cellContent = shortName;
-                            }
-                        }
-                        
-                        bodyRows += `<td class="${cellClass}">${cellContent}</td>`;
-                    }
+                    });
+                } else {
+                    // Update last login
+                    await db.collection('users').doc(user.uid).update({
+                        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 }
                 
-                tpIdx++;
-                if (tpIdx >= teachingDates.length) tpIdx = 0; // Loop if more TPs than dates
+                // Redirect to app
+                window.location.href = 'app.html';
                 
-                bodyRows += '</tr>';
-            });
-
-            html += `
-                <div class="paper-preview landscape ${paper === 'f4' ? 'f4' : ''}" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">PROGRAM SEMESTER (PROSEM)<br>KELAS ${kelas}/${rombel} - ${mapel} - SEMESTER ${semester.toUpperCase()}</h1>
-                    <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Hari Mengajar</strong></td><td>: ${HARI[hari]}</td></tr><tr><td><strong>JP/Pertemuan</strong></td><td>: ${jp} JP</td></tr></table>
-                    <table class="doc-table doc-table-sm"><thead><tr>${headerRow1}</tr><tr>${headerRow2}</tr></thead><tbody>${bodyRows}</tbody></table>
-                    <p class="text-[8pt] mt-2 text-slate-500">Keterangan: <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded">Biru=Mengajar</span> <span class="px-2 py-0.5 bg-red-100 text-red-800 rounded">Merah=Libur</span></p>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Tidak ada data</p></div>';
-    },
-
-    // ============ MODUL AJAR - RTL SUPPORT ============
-    generateModul() {
-        const container = document.getElementById('output-modul');
-        if (!container) return;
-
-        if (AppState.schedules.length === 0 || !AppState.selectedElemen) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Pilih Elemen di menu Kurikulum dan tambahkan jadwal</p><button onclick="UISystem.navigateTo(\'kurikulum\')" class="btn btn-primary">Buka Kurikulum</button></div>';
-            return;
-        }
-
-        const identity = DocumentEngine.getIdentity();
-        let html = '';
-
-        AppState.schedules.forEach(schedule => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const jp = schedule.jp || 2;
-            
-            if (!mapel || !kelas) return;
-
-            const data = CurriculumSystem.getTP(mapel, kelas, AppState.selectedSemester, AppState.selectedElemen);
-            if (!data) return;
-
-            const totalJP = data.tps.length * jp;
-            const fase = AppState.faseMap[kelas] || '';
-
-            // Generate steps with RTL support
-            let stepsHtml = data.tps.map((tp, idx) => `
-                <div class="mb-6 p-4 bg-slate-50 rounded border">
-                    <h4 class="font-bold text-primary-800 border-b-2 pb-2 mb-3">PERTEMUAN ${idx + 1} (${jp} JP)</h4>
-                    <p class="font-semibold mb-2 mixed-content">Tujuan: ${Utils.formatWithRTL(tp.tp)}</p>
-                    <div class="mb-3"><p class="font-semibold underline">A. Pendahuluan (15 Menit)</p><ol class="list-decimal pl-6 text-sm"><li>Salam, doa, presensi</li><li>Apersepsi & motivasi</li><li>Menyampaikan tujuan pembelajaran</li></ol></div>
-                    <div class="mb-3"><p class="font-semibold underline">B. Kegiatan Inti (${jp * 35 - 30} Menit)</p><ol class="list-decimal pl-6 text-sm"><li>Orientasi: Penjelasan materi</li><li>Eksplorasi: Diskusi & LKPD</li><li>Komunikasi: Presentasi</li><li>Refleksi: Penguatan</li></ol></div>
-                    <div><p class="font-semibold underline">C. Penutup (15 Menit)</p><ol class="list-decimal pl-6 text-sm"><li>Kesimpulan bersama</li><li>Tugas & info pertemuan selanjutnya</li><li>Doa & salam</li></ol></div>
-                </div>
-            `).join('');
-
-            const tpList = data.tps.map((tp, idx) => `<li class="mixed-content"><strong>TP ${idx + 1}:</strong> ${Utils.formatWithRTL(tp.tp)}</li>`).join('');
-
-            html += `
-                <div class="paper-preview portrait" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">MODUL AJAR KURIKULUM MERDEKA<br>KELAS ${kelas} - ${mapel}</h1>
-                    <div class="font-bold bg-slate-100 p-2 border-l-4 border-primary-600 mb-3">A. IDENTITAS MODUL</div>
-                    <table class="doc-table mb-4"><tr><td width="150"><strong>Penyusun</strong></td><td>: ${identity.guru}</td></tr><tr><td><strong>Sekolah</strong></td><td>: ${identity.sekolah}</td></tr><tr><td><strong>Mapel</strong></td><td>: ${mapel}</td></tr><tr><td><strong>Fase/Kelas</strong></td><td>: ${fase} / ${kelas}</td></tr><tr><td><strong>Materi</strong></td><td>: <span class="text-primary-700 font-bold">${AppState.selectedElemen}</span></td></tr><tr><td><strong>Alokasi Waktu</strong></td><td>: ${totalJP} JP (${data.tps.length} Pertemuan)</td></tr></table>
-                    <div class="font-bold bg-slate-100 p-2 border-l-4 border-primary-600 mb-3">B. CAPAIAN & TUJUAN</div>
-                    <div class="mb-4 pl-4"><p class="mb-2"><strong>CP:</strong></p><p class="bg-blue-50 p-3 rounded border text-sm mixed-content">${Utils.formatWithRTL(data.cp)}</p><p class="font-semibold mb-2 mt-3">Tujuan Pembelajaran:</p><ol class="list-decimal pl-6 text-sm">${tpList}</ol></div>
-                    <div class="font-bold bg-slate-100 p-2 border-l-4 border-primary-600 mb-3">C. LANGKAH PEMBELAJARAN</div>
-                    <div class="pl-2">${stepsHtml}</div>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Pilih Elemen dan tambahkan jadwal</p></div>';
-    },
-
-    // ============ LKPD - RTL SUPPORT (TANPA TANDA TANGAN) ============
-    generateLKPD() {
-        const container = document.getElementById('output-lkpd');
-        if (!container) return;
-
-        if (AppState.schedules.length === 0 || !AppState.selectedElemen) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Pilih Elemen di menu Kurikulum dan tambahkan jadwal</p><button onclick="UISystem.navigateTo(\'kurikulum\')" class="btn btn-primary">Buka Kurikulum</button></div>';
-            return;
-        }
-
-        const identity = DocumentEngine.getIdentity();
-        let html = '';
-
-        AppState.schedules.forEach(schedule => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const rombel = schedule.rombel || 'A';
-            
-            if (!mapel || !kelas) return;
-
-            const data = CurriculumSystem.getTP(mapel, kelas, AppState.selectedSemester, AppState.selectedElemen);
-            if (!data) return;
-
-            const tpList = data.tps.map((tp, idx) => `<li class="mixed-content">${Utils.formatWithRTL(tp.tp)}</li>`).join('');
-
-            // LKPD TANPA TANDA TANGAN
-            html += `
-                <div class="paper-preview portrait" style="margin-bottom:30px;">
-                    <div class="border-4 border-dashed border-primary-400 p-6 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 min-h-[250mm]">
-                        <div class="text-center mb-6">
-                            <h1 class="text-xl font-bold text-primary-800 uppercase">LEMBAR KERJA PESERTA DIDIK (LKPD)</h1>
-                            <p class="text-primary-600 font-semibold">${mapel} - Kelas ${kelas}/${rombel}</p>
-                        </div>
-                        
-                        <div class="flex justify-between items-center border-2 border-primary-300 rounded-lg p-3 mb-6 bg-white">
-                            <span><strong>Nama/Kelompok:</strong> ...................................</span>
-                            <span><strong>Tanggal:</strong> ..................</span>
-                            <span><strong>Nilai:</strong> ........</span>
-                        </div>
-                        
-                        <div class="bg-white rounded-lg p-4 mb-6 border border-primary-200">
-                            <p class="font-bold text-primary-700 mb-2">📚 MATERI POKOK:</p>
-                            <p class="text-lg font-semibold mixed-content">${Utils.formatWithRTL(AppState.selectedElemen)}</p>
-                        </div>
-                        
-                        <div class="bg-white rounded-lg p-4 mb-6 border border-primary-200">
-                            <p class="font-bold text-primary-700 mb-2">🎯 TUJUAN PEMBELAJARAN:</p>
-                            <ol class="list-decimal pl-6 text-sm space-y-1">${tpList}</ol>
-                        </div>
-                        
-                        <div class="bg-white rounded-lg p-4 mb-6 border border-amber-200">
-                            <p class="font-bold text-amber-700 mb-2">📋 PETUNJUK PENGERJAAN:</p>
-                            <ol class="list-decimal pl-6 text-sm space-y-1">
-                                <li>Berdoalah sebelum mengerjakan.</li>
-                                <li>Baca dan pahami setiap instruksi dengan seksama.</li>
-                                <li>Diskusikan dengan teman kelompok jika ada yang kurang dipahami.</li>
-                                <li>Tuliskan jawaban dengan rapi dan jelas.</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="bg-white rounded-lg p-4 border border-primary-200">
-                            <p class="font-bold text-primary-700 mb-4 border-b-2 border-primary-200 pb-2">✏️ KEGIATAN:</p>
-                            
-                            <div class="space-y-6">
-                                <div>
-                                    <p class="font-semibold mb-2">1. Tuliskan pemahaman utamamu mengenai materi ini!</p>
-                                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 min-h-[80px] bg-slate-50"></div>
-                                </div>
-                                
-                                <div>
-                                    <p class="font-semibold mb-2">2. Berikan contoh penerapan materi di kehidupan sehari-hari!</p>
-                                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 min-h-[80px] bg-slate-50"></div>
-                                </div>
-                                
-                                <div>
-                                    <p class="font-semibold mb-2">3. Apa kesimpulan yang dapat kamu ambil dari pembelajaran hari ini?</p>
-                                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 min-h-[80px] bg-slate-50"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Pilih Elemen dan tambahkan jadwal</p></div>';
-    },
-
-    // ============ JURNAL - MULTI KELAS ============
-    generateJurnal() {
-        const container = document.getElementById('output-jurnal');
-        if (!container) return;
-
-        if (AppState.schedules.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Tambahkan jadwal di menu Kalender terlebih dahulu</p><button onclick="UISystem.navigateTo(\'kalender\')" class="btn btn-primary">Buka Kalender</button></div>';
-            return;
-        }
-
-        CalendarSystem.generateCalendar();
-        const identity = DocumentEngine.getIdentity();
-        const paper = document.getElementById('jurnal-paper')?.value || 'a4';
-        const semester = AppState.selectedSemester || 'Ganjil';
-        const year = identity.tahun;
-        let html = '';
-
-        // Generate jurnal untuk SETIAP jadwal (kelas)
-        AppState.schedules.forEach(schedule => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const rombel = schedule.rombel || 'A';
-            const hari = parseInt(schedule.hari) || 1;
-            const jp = schedule.jp || 2;
-
-            if (!mapel || !kelas) return;
-
-            const allTP = CurriculumSystem.getAllTP(mapel, kelas, semester);
-            const teachingDates = CalendarSystem.getTeachingDates(hari, semester, year).filter(d => !d.isHoliday);
-
-            if (teachingDates.length === 0 || allTP.length === 0) return;
-
-            // Group by month
-            const byMonth = {};
-            teachingDates.forEach((td, idx) => {
-                const key = `${td.dateObj.getMonth()}-${td.dateObj.getFullYear()}`;
-                if (!byMonth[key]) byMonth[key] = [];
-                byMonth[key].push({ ...td, tp: allTP[idx % allTP.length] });
-            });
-
-            Object.keys(byMonth).forEach(key => {
-                const [monthStr, yearStr] = key.split('-');
-                const month = parseInt(monthStr);
-                const yr = parseInt(yearStr);
-                const items = byMonth[key];
-
-                const rows = items.map(item => {
-                    const dateStr = `${String(item.dateObj.getDate()).padStart(2, '0')}/${String(month + 1).padStart(2, '0')}/${yr}`;
-                    return `
-                        <tr>
-                            <td class="text-center font-bold">${dateStr}</td>
-                            <td class="text-center">${kelas}/${rombel}</td>
-                            <td class="mixed-content">${Utils.formatWithRTL(item.tp?.elemen?.substring(0, 30) || '-')}...</td>
-                            <td class="mixed-content">${Utils.formatWithRTL(item.tp?.tp || '-')}</td>
-                            <td class="text-center font-bold text-green-700">Hadir Semua</td>
-                            <td>Berjalan Lancar</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                html += `
-                    <div class="paper-preview landscape ${paper === 'f4' ? 'f4' : ''}" style="margin-bottom:30px;">
-                        <h1 class="text-center text-base font-bold mb-6 uppercase">JURNAL PELAKSANAAN PEMBELAJARAN<br>KELAS ${kelas}/${rombel} - ${mapel} - BULAN ${BULAN[month].toUpperCase()} ${yr}</h1>
-                        <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Guru</strong></td><td>: ${identity.guru}</td></tr><tr><td><strong>Hari Mengajar</strong></td><td>: ${HARI[hari]}</td></tr></table>
-                        <table class="doc-table"><thead><tr><th width="10%">Tanggal</th><th width="10%">Kelas</th><th width="18%">Materi</th><th width="32%">Tujuan Pembelajaran</th><th width="12%">Kehadiran</th><th width="18%">Keterangan</th></tr></thead><tbody>${rows}</tbody></table>
-                        ${DocumentEngine.generateSignature(identity, Utils.formatDate(`${yr}-${String(month + 1).padStart(2, '0')}-28`))}
-                    </div>
-                `;
-            });
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Tidak ada data</p></div>';
-    },
-
-    // ============ ABSENSI - MULTI KELAS ============
-    generateAbsensi() {
-        const container = document.getElementById('output-absensi');
-        if (!container) return;
-
-        if (AppState.students.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Input data siswa terlebih dahulu</p><button onclick="UISystem.navigateTo(\'data-siswa\')" class="btn btn-primary">Input Siswa</button></div>';
-            return;
-        }
-
-        if (AppState.schedules.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Tambahkan jadwal di menu Kalender terlebih dahulu</p><button onclick="UISystem.navigateTo(\'kalender\')" class="btn btn-primary">Buka Kalender</button></div>';
-            return;
-        }
-
-        CalendarSystem.generateCalendar();
-        const identity = DocumentEngine.getIdentity();
-        const semester = AppState.selectedSemester || 'Ganjil';
-        const year = identity.tahun;
-        let html = '';
-
-        // Generate absensi untuk SETIAP jadwal (kelas)
-        AppState.schedules.forEach((schedule, schIdx) => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const rombel = schedule.rombel || 'A';
-            const hari = parseInt(schedule.hari) || 1;
-
-            if (!mapel || !kelas) return;
-
-            // Filter siswa berdasarkan kelas (jika ada)
-            const filteredStudents = AppState.students.filter(s => {
-                if (!s.kelas) return true; // Jika siswa tidak punya kelas, tampilkan semua
-                return s.kelas === kelas || s.kelas === `${kelas}${rombel}` || s.kelas === `${kelas}/${rombel}`;
-            });
-
-            const studentsToShow = filteredStudents.length > 0 ? filteredStudents : AppState.students;
-
-            const teachingDates = CalendarSystem.getTeachingDates(hari, semester, year).filter(d => !d.isHoliday);
-
-            // Group by month
-            const byMonth = {};
-            teachingDates.forEach(td => {
-                const key = `${td.dateObj.getMonth()}-${td.dateObj.getFullYear()}`;
-                if (!byMonth[key]) byMonth[key] = [];
-                byMonth[key].push(td);
-            });
-
-            Object.keys(byMonth).forEach(key => {
-                const [monthStr, yearStr] = key.split('-');
-                const month = parseInt(monthStr);
-                const yr = parseInt(yearStr);
-                const dates = byMonth[key];
-
-                const dateHeaders = dates.map(d => `<th class="text-[9pt]">${d.dateObj.getDate()}</th>`).join('');
-                
-                const studentRows = studentsToShow.map((student, idx) => {
-                    const name = typeof student === 'object' ? student.nama : student;
-                    const cells = dates.map(() => `<td class="text-center p-1"><span class="cursor-pointer font-bold text-blue-600 hover:bg-blue-100 px-2 py-1 rounded text-sm absen-cell" onclick="PageScripts.toggleAbsen(this)" data-row="${idx}">H</span></td>`).join('');
-                    
-                    return `
-                        <tr data-row="${idx}">
-                            <td class="text-center">${idx + 1}</td>
-                            <td class="text-left">${name}</td>
-                            ${cells}
-                            <td class="text-center font-bold bg-slate-50 tot-h">${dates.length}</td>
-                            <td class="text-center font-bold bg-slate-50 tot-s">0</td>
-                            <td class="text-center font-bold bg-slate-50 tot-i">0</td>
-                            <td class="text-center font-bold bg-slate-50 tot-a">0</td>
-                        </tr>
-                    `;
-                }).join('');
-
-                html += `
-                    <div class="paper-preview portrait" style="margin-bottom:30px;">
-                        <h1 class="text-center text-base font-bold mb-6 uppercase">DAFTAR HADIR SISWA<br>KELAS ${kelas}/${rombel} - ${mapel} - BULAN ${BULAN[month].toUpperCase()} ${yr}</h1>
-                        <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Hari</strong></td><td>: ${HARI[hari]}</td></tr><tr><td><strong>Jumlah Siswa</strong></td><td>: ${studentsToShow.length}</td></tr></table>
-                        <table class="doc-table doc-table-sm">
-                            <thead>
-                                <tr><th rowspan="2" width="4%">No</th><th rowspan="2" width="18%">Nama Siswa</th><th colspan="${dates.length}">Tanggal</th><th colspan="4" class="bg-blue-50">Jumlah</th></tr>
-                                <tr>${dateHeaders}<th class="bg-blue-50 text-[9pt]">H</th><th class="bg-blue-50 text-[9pt]">S</th><th class="bg-blue-50 text-[9pt]">I</th><th class="bg-blue-50 text-[9pt]">A</th></tr>
-                            </thead>
-                            <tbody>${studentRows}</tbody>
-                        </table>
-                        <p class="text-[9pt] mt-2 text-slate-500">Keterangan: H=Hadir, S=Sakit, I=Izin, A=Alpha. <strong>Klik huruf untuk mengubah.</strong></p>
-                        ${DocumentEngine.generateSignature(identity, Utils.formatDate(`${yr}-${String(month + 1).padStart(2, '0')}-28`))}
-                    </div>
-                `;
-            });
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Tidak ada data</p></div>';
-    },
-
-    toggleAbsen(el) {
-        const states = { 'H': 'S', 'S': 'I', 'I': 'A', 'A': 'H' };
-        const colors = { 'H': 'text-blue-600', 'S': 'text-amber-600', 'I': 'text-purple-600', 'A': 'text-red-600' };
-        const current = el.textContent.trim();
-        const next = states[current] || 'H';
-        el.textContent = next;
-        el.className = `cursor-pointer font-bold ${colors[next]} hover:bg-blue-100 px-2 py-1 rounded text-sm absen-cell`;
-        
-        const row = el.closest('tr');
-        if (row) {
-            const cells = row.querySelectorAll('.absen-cell');
-            let counts = { H: 0, S: 0, I: 0, A: 0 };
-            cells.forEach(c => { const val = c.textContent.trim(); if (counts[val] !== undefined) counts[val]++; });
-            row.querySelector('.tot-h').textContent = counts.H;
-            row.querySelector('.tot-s').textContent = counts.S;
-            row.querySelector('.tot-i').textContent = counts.I;
-            row.querySelector('.tot-a').textContent = counts.A;
-        }
-    },
-
-    // ============ KKTP & NILAI - MULTI KELAS ============
-    generateKKTP() {
-        const container = document.getElementById('output-kktp');
-        if (!container) return;
-
-        if (AppState.schedules.length === 0) {
-            container.innerHTML = '<div class="card p-12 text-center"><p class="text-slate-500 mb-4">Tambahkan jadwal di menu Kalender terlebih dahulu</p><button onclick="UISystem.navigateTo(\'kalender\')" class="btn btn-primary">Buka Kalender</button></div>';
-            return;
-        }
-
-        const identity = DocumentEngine.getIdentity();
-        const semester = AppState.selectedSemester || 'Ganjil';
-        let html = '';
-
-        // Generate KKTP & Nilai untuk SETIAP jadwal (kelas)
-        AppState.schedules.forEach((schedule, schIdx) => {
-            const mapel = schedule.mapel || AppState.selectedMapel;
-            const kelas = schedule.kelas || AppState.selectedKelas;
-            const rombel = schedule.rombel || 'A';
-
-            if (!mapel || !kelas) return;
-
-            const allTP = CurriculumSystem.getAllTP(mapel, kelas, semester);
-
-            // Filter siswa berdasarkan kelas
-            const filteredStudents = AppState.students.filter(s => {
-                if (!s.kelas) return true;
-                return s.kelas === kelas || s.kelas === `${kelas}${rombel}` || s.kelas === `${kelas}/${rombel}`;
-            });
-            const studentsToShow = filteredStudents.length > 0 ? filteredStudents : AppState.students;
-
-            // KKTP
-            const kktpRows = allTP.length > 0 ? allTP.map((tp, idx) => `
-                <tr>
-                    <td class="text-center">${idx + 1}</td>
-                    <td class="mixed-content">${Utils.formatWithRTL(tp.tp)}</td>
-                    <td class="text-center bg-yellow-50 font-semibold" contenteditable="true" oninput="PageScripts.calcKKTP(this)">75</td>
-                    <td class="text-center bg-yellow-50 font-semibold" contenteditable="true" oninput="PageScripts.calcKKTP(this)">75</td>
-                    <td class="text-center bg-yellow-50 font-semibold" contenteditable="true" oninput="PageScripts.calcKKTP(this)">75</td>
-                    <td class="text-center font-bold bg-blue-100 text-primary-800 kktp-result">75</td>
-                </tr>
-            `).join('') : '<tr><td colspan="6" class="text-center py-4 text-slate-400">Tidak ada TP</td></tr>';
-
-            // Nilai
-            const nilaiRows = studentsToShow.length > 0 ? studentsToShow.map((student, idx) => {
-                const name = typeof student === 'object' ? student.nama : student;
-                return `
-                    <tr>
-                        <td class="text-center">${idx + 1}</td>
-                        <td class="text-left">${name}</td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center font-semibold bg-slate-50" contenteditable="true"></td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center" contenteditable="true"></td>
-                        <td class="text-center font-bold bg-blue-100 text-primary-800" contenteditable="true"></td>
-                    </tr>
-                `;
-            }).join('') : '<tr><td colspan="10" class="text-center py-4 text-slate-400">Tidak ada siswa</td></tr>';
-
-            html += `
-                <!-- KKTP Kelas ${kelas} -->
-                <div class="paper-preview portrait" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">KRITERIA KETERCAPAIAN TUJUAN PEMBELAJARAN (KKTP)<br>KELAS ${kelas}/${rombel} - ${mapel}</h1>
-                    <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Semester</strong></td><td>: ${semester}</td></tr></table>
-                    <table class="doc-table">
-                        <thead>
-                            <tr><th rowspan="2" width="5%">No</th><th rowspan="2" width="45%">Tujuan Pembelajaran</th><th colspan="3">Kriteria</th><th rowspan="2" width="10%">KKTP</th></tr>
-                            <tr><th class="text-[9pt]">Kompleksitas</th><th class="text-[9pt]">Daya Dukung</th><th class="text-[9pt]">Intake</th></tr>
-                        </thead>
-                        <tbody>${kktpRows}</tbody>
-                    </table>
-                    <p class="text-[9pt] italic text-slate-500 mt-2">*KKTP = Rata-rata 3 kriteria</p>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-                
-                <!-- Daftar Nilai Kelas ${kelas} -->
-                <div class="paper-preview landscape" style="margin-bottom:30px;">
-                    <h1 class="text-center text-base font-bold mb-6 uppercase">DAFTAR NILAI SUMATIF & FORMATIF<br>KELAS ${kelas}/${rombel} - ${mapel}</h1>
-                    <table class="doc-table mb-4" style="width:auto;"><tr><td width="150"><strong>Semester</strong></td><td>: ${semester}</td></tr><tr><td><strong>Jumlah Siswa</strong></td><td>: ${studentsToShow.length}</td></tr></table>
-                    <table class="doc-table doc-table-sm text-center">
-                        <thead>
-                            <tr><th rowspan="2" width="4%">No</th><th rowspan="2" width="20%">Nama Siswa</th><th colspan="5">Nilai Sumatif Harian</th><th rowspan="2" width="7%">STS</th><th rowspan="2" width="7%">SAS</th><th rowspan="2" width="8%" class="bg-blue-50">NR</th></tr>
-                            <tr><th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>Rata2</th></tr>
-                        </thead>
-                        <tbody>${nilaiRows}</tbody>
-                    </table>
-                    <p class="text-[9pt] mt-2 text-slate-500">STS=Sumatif Tengah Semester, SAS=Sumatif Akhir Semester, NR=Nilai Rapor</p>
-                    ${DocumentEngine.generateSignature(identity)}
-                </div>
-            `;
-        });
-
-        container.innerHTML = html || '<div class="card p-12 text-center"><p class="text-slate-500">Tidak ada data</p></div>';
-    },
-
-    calcKKTP(el) {
-        const row = el.closest('tr');
-        if (!row) return;
-        const cells = row.querySelectorAll('td[contenteditable="true"]');
-        let sum = 0, count = 0;
-        cells.forEach(cell => {
-            const val = parseFloat(cell.textContent);
-            if (!isNaN(val) && val >= 0 && val <= 100) { sum += val; count++; }
-        });
-        const result = row.querySelector('.kktp-result');
-        if (result && count > 0) result.textContent = Math.round(sum / count);
-    },
-
-    // ============ BANK SOAL - RTL SUPPORT ============
-    populateSoalTP() {
-        const select = document.getElementById('soal-tp');
-        if (!select) return;
-        select.innerHTML = '<option value="">-- Pilih TP --</option>';
-        CurriculumSystem.getAllTP(AppState.selectedMapel, AppState.selectedKelas, AppState.selectedSemester).forEach((tp, i) => {
-            select.innerHTML += `<option value="${tp.tp}">${i + 1}. ${tp.tp.substring(0, 50)}...</option>`;
-        });
-    },
-
-    importSoalCSV() {
-        const csv = document.getElementById('input-soal-csv').value.trim();
-        if (!csv) { UISystem.showToast('Paste data CSV terlebih dahulu', 'error'); return; }
-
-        const lines = csv.split('\n');
-        const questions = [];
-        for (let i = 1; i < lines.length; i++) {
-            const cols = Utils.parseCSVRow(lines[i]);
-            if (cols.length >= 2) {
-                questions.push({ no: cols[0] || i, soal: cols[1] || '', jawaban: cols[cols.length - 1] || '' });
+            } catch (error) {
+                console.error('Sign in error:', error);
+                loadingOverlay.classList.add('hidden');
+                alert('Gagal masuk: ' + error.message);
             }
         }
-        this.renderSoalList(questions);
-        UISystem.showToast(`${questions.length} soal diimport`);
-    },
 
-    renderSoalList(questions) {
-        const container = document.getElementById('list-soal');
-        if (!container) return;
-        if (!questions || questions.length === 0) { container.innerHTML = '<p class="text-slate-400 text-center py-8">Belum ada soal</p>'; return; }
-
-        container.innerHTML = questions.map((q, idx) => `
-            <div class="p-4 bg-slate-50 rounded-xl border mb-3">
-                <div class="flex gap-4">
-                    <span class="w-8 h-8 bg-primary-600 text-white rounded-lg flex items-center justify-center font-bold flex-shrink-0">${idx + 1}</span>
-                    <div class="flex-1">
-                        <p class="font-medium mixed-content">${Utils.formatWithRTL(q.soal)}</p>
-                        <p class="text-sm text-green-600 mt-2 font-semibold mixed-content"><span class="text-slate-500">Jawaban:</span> ${Utils.formatWithRTL(q.jawaban)}</p>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    },
-
-    // ============ SUPER ADMIN ============
-    async loadAdminData() {
-        if (!AppState.isSuperAdmin) return;
-        const statsContainer = document.getElementById('admin-stats');
-        try {
-            const users = await SuperAdminSystem.getAllUsers();
-            const schools = await SuperAdminSystem.getAllSchools();
-            const schoolsByNPSN = {};
-            users.forEach(u => { if (u.npsn) { if (!schoolsByNPSN[u.npsn]) schoolsByNPSN[u.npsn] = []; schoolsByNPSN[u.npsn].push(u); } });
-
-            statsContainer.innerHTML = `
-                <div class="flex justify-between py-3 border-b"><span>Total Users</span><span class="text-xl font-bold">${users.length}</span></div>
-                <div class="flex justify-between py-3 border-b"><span>Total Sekolah</span><span class="text-xl font-bold">${schools.length}</span></div>
-                <div class="flex justify-between py-3"><span>NPSN Premium</span><span class="text-xl font-bold text-primary-600">${AppState.settings.premiumNPSN?.length || 0}</span></div>
-            `;
-        } catch (error) {
-            statsContainer.innerHTML = '<p class="text-red-500">Error loading data</p>';
+        // WhatsApp redirect for premium/school
+        function redirectToWhatsApp(type) {
+            const phone = '6281234567890'; // Default, will be fetched from settings
+            let message = '';
+            
+            if (type === 'premium') {
+                message = 'Halo, saya ingin upgrade ke AGSA Premium.';
+            } else if (type === 'school') {
+                message = 'Halo, saya ingin informasi tentang Paket Sekolah AGSA.';
+            }
+            
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
         }
-    },
 
-    async saveAdminSettings() {
-        const waNumber = document.getElementById('admin-wa').value.trim();
-        const premiumNPSN = document.getElementById('admin-premium-npsn').value.split(',').map(s => s.trim()).filter(s => s);
-        const premiumUsers = document.getElementById('admin-premium-users').value.split('\n').map(s => s.trim()).filter(s => s);
-        await SuperAdminSystem.saveSettings({ waNumber, premiumNPSN, premiumUsers });
-    }
-};
+        // Event Listeners
+        loginButtons.forEach(btn => {
+            btn.addEventListener('click', signInWithGoogle);
+        });
 
-// ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', () => {
-    CalendarSystem.init();
-    
-    // Load students from localStorage
-    const savedStudents = localStorage.getItem('agsa_students');
-    if (savedStudents) {
-        try { AppState.students = JSON.parse(savedStudents); } catch (e) {}
-    }
+        premiumBtn.addEventListener('click', () => redirectToWhatsApp('premium'));
+        schoolPlanBtn.addEventListener('click', () => redirectToWhatsApp('school'));
 
-    AuthSystem.init();
-
-    document.addEventListener('curriculumLoaded', () => {
-        if (UISystem.currentPage === 'kurikulum') PageScripts.updateKurikulumDropdowns();
-    });
-
-    window.addEventListener('resize', () => {
-        if (window.innerWidth >= 1024) {
-            document.getElementById('app-sidebar').classList.remove('-translate-x-full');
-            document.getElementById('sidebar-overlay').classList.add('hidden');
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-    });
-
-    document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-    });
-});
-
-// Global exports
-window.UISystem = UISystem;
-window.AuthSystem = AuthSystem;
-window.AISystem = AISystem;
-window.PageScripts = PageScripts;
-window.SubscriptionSystem = SubscriptionSystem;
-</script>
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>
